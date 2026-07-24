@@ -69,9 +69,15 @@
     <input type="range" id="date" min="0" max="13" value="2" />
     <div class="muted" id="dateLabel">—</div>
 
+    <div class="seg">
+      <button id="cityBtn" style="background:#1d3b57;color:#fff;border-color:#1d3b57">🏙 Kyiv districts →</button>
+      <button id="backBtn" style="display:none">← Back to Ukraine</button>
+    </div>
+
     <label class="blk">Layer</label>
     <div class="seg" id="layers">
-      <button data-l="tx95_exceedance" class="active">TX95 exceed</button>
+      <button data-l="hazard" class="active">Heat hazard</button>
+      <button data-l="tx95_exceedance">TX95 exceed</button>
       <button data-l="tx90_exceedance">TX90 exceed</button>
       <button data-l="nighttime">Tropical night</button>
       <button data-l="heat_index">Heat Index</button>
@@ -101,7 +107,9 @@
     const KYIV = {lat:50.4501, lon:30.5234, name:"Kyiv"};
     const today = new Date();
     const dayISO = (o)=>{ const d=new Date(today); d.setDate(d.getDate()+o); return d.toISOString().slice(0,10); };
-    let layer="tx95_exceedance", markers=[];
+    let layer="hazard", markers=[];
+    let cityMode=null;                            // {city, regions, geojson, bbox} when in city detail
+    const natLayer=()=> layer==="hazard" ? "tx95_exceedance" : layer;
     let cur = {...KYIV};                          // current selected location
     const curDate = ()=> dayISO(+document.getElementById("date").value);
     const scenario = ()=> document.getElementById("demo").checked ? "heatwave" : "";
@@ -135,6 +143,7 @@
     }
 
     async function loadMap(){
+      if(cityMode){ return loadCityRisk(); }
       const on=curDate(); document.getElementById("dateLabel").textContent=on+(scenario()?"  (DEMO heatwave)":"");
       try{
         const gj=await (await fetch("/data/boundaries/ukraine_oblasts.geojson")).json();
@@ -142,7 +151,7 @@
           map.addLayer({id:"ob-fill",type:"fill",source:"oblasts",paint:{"fill-color":"#8aa0b2","fill-opacity":0.06}});
           map.addLayer({id:"ob-line",type:"line",source:"oblasts",paint:{"line-color":"#8aa0b2","line-width":0.8}}); }
       }catch{}
-      let d; try{ d=await (await fetch(`${API}/api/risk-map?on=${on}&layer=${layer}&scenario=${scenario()}`)).json(); }
+      let d; try{ d=await (await fetch(`${API}/api/risk-map?on=${on}&layer=${natLayer()}&scenario=${scenario()}`)).json(); }
       catch(e){ return; }
       markers.forEach(m=>m.remove()); markers=[];
       const ok=d.points.filter(p=>!p.error);
@@ -155,6 +164,7 @@
     }
 
     async function loadField(){
+      if(cityMode) return;
       const on=curDate(), want=document.getElementById("field").checked;
       const ids=["grid-fill","grid-line"];
       if(!want){ ids.forEach(i=>{ if(map.getLayer(i))map.removeLayer(i); }); if(map.getSource("grid"))map.removeSource("grid"); return; }
@@ -181,7 +191,96 @@
       L.innerHTML=`<span><i style="background:#4a90c2"></i>below</span><span><i style="background:#e0a300"></i>0–2</span><span><i style="background:#e2681c"></i>2–4</span><span><i style="background:#c0281c"></i>≥4°C over</span>`;
     }
 
-    function selectLoc(lat,lon,name){ cur={lat,lon,name:name||`${lat.toFixed(2)},${lon.toFixed(2)}`}; showDetail(); }
+    // ---------- City drill-down ----------
+    const CAT_COLOR={low:"#4a90c2",moderate:"#e0a300",high:"#e2681c",critical:"#c0281c"};
+    async function enterCity(cityId){
+      let reg; try{ reg=await (await fetch(`${API}/api/city-regions?city=${cityId}`)).json(); }catch(e){ return; }
+      if(reg.detail){ alert("District detail unavailable: "+reg.detail); return; }
+      cityMode={city:cityId, name:reg.name_en, bbox:reg.bbox, resolution:reg.resolution_note,
+                source:(reg.source&&reg.source.source)||"OSM", regions:[]};
+      markers.forEach(m=>m.remove()); markers=[];
+      ["grid-fill","grid-line"].forEach(i=>{if(map.getLayer(i))map.removeLayer(i)}); if(map.getSource("grid"))map.removeSource("grid");
+      document.getElementById("field").checked=false;
+      if(map.getSource("districts")) map.getSource("districts").setData(reg.geojson);
+      else{
+        map.addSource("districts",{type:"geojson",data:reg.geojson});
+        map.addLayer({id:"dist-fill",type:"fill",source:"districts",paint:{"fill-color":"#9aa7b1","fill-opacity":0.6}});
+        map.addLayer({id:"dist-line",type:"line",source:"districts",paint:{"line-color":"#fff","line-width":1.1}});
+        map.on("click","dist-fill",(e)=>districtPopup(e.features[0].properties.id));
+        map.on("mouseenter","dist-fill",()=>map.getCanvas().style.cursor="pointer");
+        map.on("mouseleave","dist-fill",()=>map.getCanvas().style.cursor="");
+      }
+      const b=reg.bbox; map.fitBounds([[b[0],b[1]],[b[2],b[3]]],{padding:40,duration:800});
+      document.getElementById("backBtn").style.display="";
+      document.getElementById("cityBtn").style.display="none";
+      document.querySelector("#left h1").textContent=reg.name_en+" — districts";
+      await loadCityRisk();
+    }
+    function exitCity(){
+      cityMode=null;
+      ["dist-fill","dist-line"].forEach(i=>{if(map.getLayer(i))map.removeLayer(i)}); if(map.getSource("districts"))map.removeSource("districts");
+      document.getElementById("backBtn").style.display="none";
+      document.getElementById("cityBtn").style.display="";
+      document.querySelector("#left h1").textContent="Ukraine heat hazard";
+      document.getElementById("detail").style.display="none";
+      map.flyTo({center:[31.2,48.8],zoom:5,duration:800});
+      loadMap();
+    }
+    function cityColor(r){
+      if(!r||r.error) return "#9aa7b1";
+      if(layer==="hazard") return CAT_COLOR[r.category]||"#9aa7b1";
+      if(layer==="nighttime") return r.tropical_night?"#c0281c":"#4a90c2";
+      if(layer==="heat_index"){const v=r.heat_index_max;return v==null?"#9aa7b1":v>=41?"#c0281c":v>=32?"#e2681c":v>=27?"#e0a300":"#4a90c2";}
+      const v=layer==="tx90_exceedance"?r.tmax_minus_tx90:r.tmax_minus_tx95;
+      return v==null?"#9aa7b1":v>=4?"#c0281c":v>=2?"#e2681c":v>=0?"#e0a300":"#4a90c2";
+    }
+    async function loadCityRisk(){
+      const on=curDate(); document.getElementById("dateLabel").textContent=on+(scenario()?"  (DEMO heatwave)":"");
+      let d; try{ d=await (await fetch(`${API}/api/city-risk-map?city=${cityMode.city}&date=${on}&layer=${layer}&scenario=${scenario()}`)).json(); }catch(e){ return; }
+      cityMode.regions=d.regions;
+      const expr=["match",["get","id"]]; d.regions.forEach(r=>expr.push(r.id, cityColor(r))); expr.push("#9aa7b1");
+      if(map.getLayer("dist-fill")) map.setPaintProperty("dist-fill","fill-color",expr);
+      renderCityRanking(d.regions); renderLegend();
+    }
+    function renderCityRanking(regs){
+      const ord={low:0,moderate:1,high:2,critical:3};
+      const key=(r)=> layer==="hazard"?ord[r.category]: layer==="heat_index"?(r.heat_index_max??-99): layer==="nighttime"?(r.tropical_night?1:0): layer==="tx90_exceedance"?(r.tmax_minus_tx90??-99):(r.tmax_minus_tx95??-99);
+      const s=[...regs].filter(r=>!r.error).sort((a,b)=>key(b)-key(a));
+      const box=document.getElementById("ranklist"); box.innerHTML="";
+      s.forEach(r=>{ const row=document.createElement("div"); row.className="row";
+        const val= layer==="hazard"?r.category: layer==="nighttime"?(r.tropical_night?"yes":"no"): layer==="heat_index"?r.heat_index_max:(layer==="tx90_exceedance"?r.tmax_minus_tx90:r.tmax_minus_tx95);
+        row.innerHTML=`<span>${r.name_en||r.name}</span><span><b>${val}</b> <span class="pill ${r.category}">${r.category}</span></span>`;
+        row.onclick=()=>districtPopup(r.id); box.appendChild(row); });
+    }
+    function districtPopup(id){
+      const r=(cityMode.regions||[]).find(x=>x.id===id); if(!r) return;
+      const box=document.getElementById("detail"); box.style.display="block";
+      if(r.error){ box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span><b>${r.name_en}</b><div class="muted">forecast unavailable</div>`; return; }
+      box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span>`+
+        `<b>${r.name_en||r.name}</b> <span class="pill ${r.category}">${r.category}</span>`+
+        `<div class="muted">${cityMode.name} · ${curDate()} · ${r.n_cells} forecast cell(s)${r.from_centroid?" (centroid only)":""}</div>`+
+        `<table>`+
+        `<tr><td>Tmax mean / max</td><td>${r.tmax_mean} / ${r.tmax_max} °C</td></tr>`+
+        `<tr><td>Tmin mean</td><td>${r.tmin_mean} °C</td></tr>`+
+        `<tr><td>TX90 / TX95</td><td>${r.tx90} / ${r.tx95} °C</td></tr>`+
+        `<tr><td>Tmax − TX95</td><td>${r.tmax_minus_tx95} °C</td></tr>`+
+        `<tr><td>Heat Index / Humidex</td><td>${r.heat_index_max??"–"} / ${r.humidex_max??"–"}</td></tr>`+
+        `<tr><td>Tropical night</td><td>${r.tropical_night?"🌙 yes":"no"}</td></tr>`+
+        `<tr><td>3-day TX95 event</td><td>${r.tx95_3day_event?"⚠ yes":"no"}</td></tr>`+
+        `</table>`+
+        `<div class="foot"><b>Why ${r.category}:</b> ${(r.reasons||[]).join(" ")}</div>`+
+        `<div class="foot">${cityMode.resolution}</div>`+
+        `<button class="btn" onclick="cityProfile('${r.id}')">Check my personal risk here →</button>`;
+    }
+    function cityProfile(id){
+      const r=(cityMode.regions||[]).find(x=>x.id===id); if(!r||!r.centroid) return;
+      cur={lat:r.centroid[0], lon:r.centroid[1], name:(r.name_en||r.name)+", "+cityMode.name};
+      openProfile();
+    }
+    document.getElementById("cityBtn").onclick=()=>enterCity("kyiv");
+    document.getElementById("backBtn").onclick=exitCity;
+
+    function selectLoc(lat,lon,name){ cur={lat,lon,name:name||`${lat.toFixed(2)},${lon.toFixed(2)}`}; if(!cityMode) showDetail(); }
     async function showDetail(){
       const box=document.getElementById("detail"); box.style.display="block";
       box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span><b>${cur.name}</b><div class="muted">loading…</div>`;
@@ -286,8 +385,8 @@
     }
 
     // controls
-    document.getElementById("date").oninput=()=>{ loadMap(); if(document.getElementById("detail").style.display!=="none") showDetail(); };
-    document.getElementById("demo").onchange=()=>{ loadMap(); showDetail(); };
+    document.getElementById("date").oninput=()=>{ loadMap(); if(!cityMode && document.getElementById("detail").style.display!=="none") showDetail(); };
+    document.getElementById("demo").onchange=()=>{ loadMap(); if(!cityMode) showDetail(); };
     document.getElementById("field").onchange=loadField;
     document.getElementById("openProfile").onclick=openProfile;
     document.querySelectorAll("#layers button").forEach(b=>b.onclick=()=>{

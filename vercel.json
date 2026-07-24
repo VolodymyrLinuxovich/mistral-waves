@@ -9,7 +9,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": "{backend/**,config/**,data/processed/*.npz,data/processed/*.meta.json,data/demo/**}"
+      "includeFiles": "{backend/**,config/**,data/processed/*.npz,data/processed/*.meta.json,data/demo/**,data/boundaries/kyiv_districts.geojson,data/boundaries/kyiv_districts.provenance.json}"
     }
   }
 }

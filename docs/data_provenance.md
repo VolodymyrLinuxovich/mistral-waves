@@ -18,7 +18,8 @@ clearly-labelled cached real-data snapshot.
 | Health | Kyiv daily reports | none | **unverified** | scrape defensively; may be descriptive-only |
 | Air quality | Open-Meteo AQ / Kyiv API | none | planned | PM2.5, O₃, NO₂ prioritised |
 | Population | WorldPop / GHS-POP | none | planned | show year; displacement caveat |
-| Boundaries | OSM / official admin | none | planned | record extraction date |
+| Boundaries (national/oblast) | geoBoundaries gbOpen | none | done | CC-BY 4.0 |
+| Boundaries (Kyiv districts) | OpenStreetMap via Overpass | none | done | ODbL; 10 raiony, admin_level=10; retrieved 2026-07-24; see kyiv_districts.provenance.json |
 | Urban overheat | Sentinel-3/MODIS LST + NDVI | none | optional | LST = surface temp, not air temp |
 
 ## Health-report audit checklist (Day 9, before any inference)

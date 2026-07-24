@@ -76,8 +76,11 @@ def _hazard_level(day_summaries: list[dict]) -> str:
 
 
 def assess_location(lat: float, lon: float, forecast_days: int = 14,
-                    scenario: Optional[str] = None) -> dict:
-    fc = fetch_forecast(lat, lon, forecast_days=forecast_days, scenario=scenario)
+                    scenario: Optional[str] = None, forecast_result=None) -> dict:
+    # forecast_result lets callers (e.g. the city batched fetch) supply an
+    # already-fetched forecast so we don't do one network call per point.
+    fc = forecast_result or fetch_forecast(lat, lon, forecast_days=forecast_days,
+                                           scenario=scenario)
     store = get_store()
     days = fc.daily.get("time", [])
     tmax = fc.daily.get("temperature_2m_max", [])

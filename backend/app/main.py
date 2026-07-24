@@ -205,6 +205,44 @@ def profile_risk(req: ProfileRiskRequest,
     return assess_profile(req)
 
 
+@app.get("/api/city-regions")
+def city_regions(city: str = Query("kyiv")):
+    """District polygons + city boundary/metadata for a city (validated OSM)."""
+    from app.services.city import get_city_regions
+    try:
+        return get_city_regions(city.lower())
+    except (KeyError, FileNotFoundError) as e:
+        raise HTTPException(status_code=404,
+                            detail=f"district detail unavailable for '{city}': {e}")
+
+
+@app.get("/api/city-risk-map")
+def city_risk_map(
+    city: str = Query("kyiv"),
+    date_: str = Query(..., alias="date", description="YYYY-MM-DD"),
+    layer: str = Query("hazard"),
+    scenario: str = Query(""),
+):
+    """Per-district heat hazard (spatial mean/max/p90) with reasons."""
+    try:
+        date.fromisoformat(date_)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="invalid date; use YYYY-MM-DD")
+    from app.services.city import get_city_risk_map
+    try:
+        return get_city_risk_map(city.lower(), date_, layer=layer,
+                                 scenario=scenario or None)
+    except (KeyError, FileNotFoundError) as e:
+        raise HTTPException(status_code=404,
+                            detail=f"district detail unavailable for '{city}': {e}")
+
+
+@app.get("/api/cities-available")
+def cities_available():
+    from app.services.city import available_cities
+    return {"cities": available_cities()}
+
+
 @app.get("/api/forecast-grid")
 def forecast_grid_endpoint(
     on: str = Query(..., description="date YYYY-MM-DD"),

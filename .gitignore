@@ -8,7 +8,7 @@ frontend/config.js
 data/raw/
 data/cache/
 data/processed/
-data/boundaries/*.geojson
+data/boundaries/
 
 # Build artifacts (generated; public/ also contains the client MapTiler key)
 public/
