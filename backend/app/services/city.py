@@ -49,7 +49,9 @@ CITY_REGISTRY = {
     "kyiv": {
         "name_en": "Kyiv", "name_uk": "Київ",
         "districts_file": "kyiv_districts.geojson",
-        "center": [50.4501, 30.5234], "zoom": 10,
+        "center": [50.4501, 30.5234], "zoom": 10, "default_zoom": 9.5,
+        "region_type": "raion",
+        "boundary_source": "OpenStreetMap via Overpass (ODbL)",
     },
 }
 
@@ -57,8 +59,14 @@ CITY_REGISTRY = {
 def available_cities() -> list[dict]:
     out = []
     for cid, c in CITY_REGISTRY.items():
-        out.append({"id": cid, "name_en": c["name_en"], "name_uk": c["name_uk"],
-                    "has_districts": (BOUNDARIES / c["districts_file"]).exists()})
+        has = (BOUNDARIES / c["districts_file"]).exists()
+        out.append({
+            "id": cid, "name_en": c["name_en"], "name_uk": c["name_uk"],
+            "center": c["center"], "default_zoom": c.get("default_zoom", 9.5),
+            "region_type": c.get("region_type"),
+            "boundary_source": c.get("boundary_source"),
+            "has_districts": has, "has_regions": has,
+        })
     return out
 
 

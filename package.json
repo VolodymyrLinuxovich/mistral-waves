@@ -1,0 +1,18 @@
+{
+  "name": "waves",
+  "version": "1.0.0",
+  "description": "A scientifically defensible MVP for heatwave hazard and heat-health risk across Ukraine, with a detailed Kyiv view. **Not a medical device.** It separates four layers that are never conflated: **hazard · exposure · vulnerability · health outcome** (see `docs/methodology.md`).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

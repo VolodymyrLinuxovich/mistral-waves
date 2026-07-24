@@ -20,9 +20,12 @@ output/
 __pycache__/
 *.pyc
 
-# Node
+# Node / Playwright
 node_modules/
 frontend/.next/
+playwright-report/
+test-results/
+.playwright/
 
 # OS
 .DS_Store

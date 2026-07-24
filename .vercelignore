@@ -16,3 +16,10 @@ frontend/map-demo.html
 scripts/
 epidemiology/
 pipelines/
+node_modules/
+tests/
+playwright.config.js
+playwright-report/
+test-results/
+package.json
+package-lock.json
