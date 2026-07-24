@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waves — Ukraine heat map (Day 2 demo)</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="./config.js"></script>
+  <style>
+    :root { --fg:#1a1a1a; --panel:rgba(255,255,255,.94); }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; font-family:system-ui,-apple-system,sans-serif; }
+    #map { position:absolute; inset:0; }
+    #panel {
+      position:absolute; top:12px; left:12px; z-index:2; width:min(340px,92vw);
+      background:var(--panel); border-radius:12px; padding:14px 16px;
+      box-shadow:0 6px 24px rgba(0,0,0,.18); color:var(--fg); max-height:90vh; overflow:auto;
+    }
+    h1 { font-size:16px; margin:0 0 4px; }
+    .sub { font-size:12px; color:#555; margin:0 0 10px; }
+    .row { font-size:13px; margin:6px 0; }
+    .k { color:#666; }
+    .badge { display:inline-block; font-size:11px; padding:2px 7px; border-radius:999px;
+             background:#eee; color:#333; margin-left:6px; }
+    .warn { color:#a15c00; font-size:11px; }
+    button { font:inherit; font-size:12px; padding:6px 10px; border:1px solid #ccc;
+             border-radius:8px; background:#fff; cursor:pointer; }
+    #hint { position:absolute; bottom:10px; left:12px; z-index:2; font-size:11px;
+            color:#333; background:var(--panel); padding:6px 10px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="panel">
+    <h1>Ukraine heat map <span class="badge">Day 2 demo</span></h1>
+    <p class="sub">Real oblast boundaries (geoBoundaries) + live Open-Meteo forecast
+       via the backend. Click the map for a point forecast.</p>
+    <div class="row"><span class="k">Backend:</span> <span id="apihealth">checking…</span></div>
+    <div class="row"><span class="k">Location:</span> <span id="loc">Kyiv (50.45, 30.52)</span></div>
+    <div class="row"><span class="k">Provider:</span> <span id="prov">—</span></div>
+    <div class="row"><span class="k">Fetched (UTC):</span> <span id="fetched">—</span></div>
+    <div class="row"><span class="k">Tmax next 5 days (°C):</span><br/><span id="tmax">—</span></div>
+    <div class="row"><span class="k">Tmin next 5 days (°C):</span><br/><span id="tmin">—</span></div>
+    <div class="row warn" id="warn"></div>
+    <div class="row" style="margin-top:10px"><button id="reset">Reset to Kyiv</button></div>
+  </div>
+  <div id="hint">Data: ERA5-Land climatology (backend) · Open-Meteo forecast · not a medical device</div>
+
+  <script>
+    const C = window.WAVES_CONFIG || {};
+    const API = C.API_BASE || "http://127.0.0.1:8010";
+    const KYIV = [30.5234, 50.4501];
+
+    const style = C.MAPTILER_KEY
+      ? `https://api.maptiler.com/maps/dataviz/style.json?key=${C.MAPTILER_KEY}`
+      : { version: 8, sources: {}, layers: [
+            { id: "bg", type: "background", paint: { "background-color": "#dfe7ef" } } ] };
+
+    const map = new maplibregl.Map({
+      container: "map", style, center: [31.2, 48.8], zoom: 5,
+    });
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+    map.on("load", async () => {
+      try {
+        const gj = await (await fetch("../data/boundaries/ukraine_oblasts.geojson")).json();
+        map.addSource("oblasts", { type: "geojson", data: gj });
+        map.addLayer({ id: "oblast-fill", type: "fill", source: "oblasts",
+          paint: { "fill-color": "#f08c3a", "fill-opacity": 0.12 } });
+        map.addLayer({ id: "oblast-line", type: "line", source: "oblasts",
+          paint: { "line-color": "#c0621c", "line-width": 1 } });
+      } catch (e) {
+        document.getElementById("warn").textContent =
+          "Could not load oblast GeoJSON (serve the repo root over HTTP).";
+      }
+      loadForecast(KYIV[1], KYIV[0], "Kyiv (50.45, 30.52)");
+    });
+
+    map.on("click", (e) => {
+      loadForecast(e.lngLat.lat, e.lngLat.lng,
+        `${e.lngLat.lat.toFixed(3)}, ${e.lngLat.lng.toFixed(3)}`);
+    });
+    document.getElementById("reset").onclick = () => {
+      map.flyTo({ center: [31.2, 48.8], zoom: 5 });
+      loadForecast(KYIV[1], KYIV[0], "Kyiv (50.45, 30.52)");
+    };
+
+    fetch(`${API}/api/health`).then(r => r.json())
+      .then(d => document.getElementById("apihealth").textContent = `${d.status} (${d.build})`)
+      .catch(() => document.getElementById("apihealth").textContent = "unreachable — is uvicorn running?");
+
+    let marker;
+    async function loadForecast(lat, lon, label) {
+      document.getElementById("loc").textContent = label;
+      if (marker) marker.remove();
+      marker = new maplibregl.Marker({ color: "#c0621c" }).setLngLat([lon, lat]).addTo(map);
+      try {
+        const d = await (await fetch(
+          `${API}/api/forecast?latitude=${lat}&longitude=${lon}&forecast_days=7`)).json();
+        document.getElementById("prov").textContent =
+          `${d.provider}${d.from_cache ? " (cached)" : " (live)"}`;
+        document.getElementById("fetched").textContent = d.fetched_utc;
+        document.getElementById("tmax").textContent =
+          d.daily.temperature_2m_max.slice(0, 5).join(", ");
+        document.getElementById("tmin").textContent =
+          d.daily.temperature_2m_min.slice(0, 5).join(", ");
+        document.getElementById("warn").textContent = (d.warnings || []).join(" · ");
+      } catch (e) {
+        document.getElementById("prov").textContent = "forecast fetch failed";
+      }
+    }
+  </script>
+</body>
+</html>

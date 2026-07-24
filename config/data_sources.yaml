@@ -1,0 +1,79 @@
+# Data-source registry. Every provider is fronted by an adapter implementing:
+# fetch / validate / normalize / cache / provenance / missing-data handling /
+# last-successful-update / graceful failure (spec section 11).
+version: "0.1.0"
+
+climatology:
+  primary:
+    id: era5_land_cds
+    product: "ERA5-Land"
+    period: "1991-2020"
+    provider: "Copernicus Climate Data Store (CDS)"
+    credential_env: "CDSAPI_KEY"      # REQUIRED for native-resolution ERA5-Land
+    status: "adapter_stub"            # reference-grade path; run once offline
+    resolution: "~9 km"
+    notes: "Reanalysis, not ground truth. Preserve units/grid/processing history."
+  pragmatic:
+    id: open_meteo_era5
+    product: "ERA5-Land archive via Open-Meteo"
+    provider: "Open-Meteo"
+    credential_env: null              # no key required
+    status: "planned_working_source"
+    notes: "Credential-free path so the MVP is not blocked on CDS provisioning."
+
+forecast:
+  working:
+    id: open_meteo_forecast
+    provider: "Open-Meteo"
+    credential_env: null
+    status: "planned_working_source"
+    variables: [t2m, tmax, tmin, rh, dewpoint, wind10m, shortwave]
+  alternate:
+    id: ecmwf_open_data
+    provider: "ECMWF Open Data"
+    credential_env: null
+    status: "adapter_stub"
+    notes: "Second adapter. Do NOT claim multi-model ensemble unless both ingested."
+
+health:
+  kyiv_daily:
+    id: kyiv_daily_reports
+    provider: "Official Kyiv daily operational health reports"
+    credential_env: null
+    status: "availability_unverified"   # ONLY genuine hard blocker
+    notes: >
+      Defensive scraper + archive audit required before any inference.
+      If inadequate: descriptive-only analysis, documented. Never fabricate counts.
+      Missing == missing, never zero. No patient-level data stored.
+
+air_quality:
+  kyiv:
+    id: open_meteo_aq
+    provider: "Open-Meteo Air Quality (fallback for official Kyiv API)"
+    credential_env: null
+    status: "planned"
+    priority_pollutants: [pm2_5, o3, no2]
+
+population:
+  gridded:
+    id: worldpop_or_ghs
+    provider: "WorldPop / GHS-POP (versioned)"
+    credential_env: null
+    status: "planned"
+    notes: "Show population year. Wartime displacement may invalidate old estimates."
+
+boundaries:
+  admin:
+    id: osm_admin
+    provider: "OSM-derived / official admin boundaries (versioned)"
+    credential_env: null
+    status: "planned"
+    notes: "Record source + extraction date."
+
+urban_layer:
+  kyiv_lst:
+    id: kyiv_lst_ndvi
+    provider: "Sentinel-3 / MODIS LST + NDVI (precomputed)"
+    credential_env: null
+    status: "optional_post_core"
+    notes: "LST is SURFACE temperature, never labelled as 2 m air temperature."

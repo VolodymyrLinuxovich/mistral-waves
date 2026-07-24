@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waves — Ukraine heat hazard & personal risk (MVP)</title>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="./config.js"></script>
+  <style>
+    :root { --fg:#16202a; --panel:rgba(255,255,255,.97); --line:#e2e6ea; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; height:100%; font-family:system-ui,-apple-system,sans-serif; color:var(--fg); }
+    #map { position:absolute; inset:0; }
+    .card { position:absolute; z-index:2; background:var(--panel); border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.16); }
+    #banner { position:absolute; top:0; left:0; right:0; z-index:5; background:#8a4b00; color:#fff; font-size:12.5px; padding:7px 14px; text-align:center; }
+    #banner.complete { background:#155e2e; }
+    #disclaimer { position:absolute; bottom:0; left:0; right:0; z-index:5; background:#111a22; color:#e9eef2; font-size:11.5px; padding:6px 14px; text-align:center; }
+    body { --top:0px; }
+    #left { top:44px; left:12px; width:min(360px,94vw); padding:14px 16px; max-height:calc(100vh - 90px); overflow:auto; }
+    h1 { font-size:16px; margin:0 0 2px; } h2{font-size:15px;margin:0 0 6px}
+    .muted { color:#5c6b78; font-size:12px; }
+    .seg { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+    .seg button, select, input { font:inherit; font-size:12px; padding:6px 9px; border:1px solid #cdd4da; border-radius:8px; background:#fff; cursor:pointer; }
+    .seg button.active { background:#16202a; color:#fff; border-color:#16202a; }
+    label.blk { display:block; font-size:11px; color:#5c6b78; margin:8px 0 3px; text-transform:uppercase; letter-spacing:.03em; }
+    input#search { width:100%; }
+    .list { margin:6px 0 0; border-top:1px solid var(--line); }
+    .row { display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; cursor:pointer; }
+    .row:hover { background:#f6f8fa; }
+    .pill { font-size:11px; padding:1px 7px; border-radius:999px; color:#fff; }
+    .low{background:#4a90c2} .moderate{background:#e0a300} .high{background:#e2681c} .critical{background:#c0281c}
+    .legend { display:flex; gap:10px; font-size:11px; margin-top:8px; align-items:center; flex-wrap:wrap; }
+    .legend i { width:12px; height:12px; border-radius:3px; display:inline-block; margin-right:3px; vertical-align:-1px; }
+    .btn { display:inline-block; background:#16202a; color:#fff; border:none; border-radius:9px; padding:9px 14px; font-size:13px; cursor:pointer; width:100%; margin-top:10px; }
+    .btn.sec { background:#eef2f5; color:#16202a; }
+    #detail { bottom:34px; right:12px; width:min(340px,94vw); padding:12px 14px; max-height:56vh; overflow:auto; display:none; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th,td { text-align:right; padding:3px 4px; border-bottom:1px solid var(--line); }
+    th:first-child,td:first-child { text-align:left; }
+    .foot { font-size:11px; color:#5c6b78; margin-top:8px; }
+    .close { float:right; cursor:pointer; color:#5c6b78; font-size:15px; }
+    /* Overlay for profile & result */
+    #overlay { position:fixed; inset:0; z-index:10; background:rgba(10,15,20,.45); display:none; align-items:flex-start; justify-content:center; overflow:auto; padding:24px 12px; }
+    #sheet { background:#fff; border-radius:14px; width:min(520px,96vw); padding:18px 20px; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    fieldset { border:1px solid var(--line); border-radius:10px; margin:10px 0; padding:10px 12px; }
+    legend { font-size:12px; color:#5c6b78; padding:0 6px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; }
+    .chk { font-size:13px; display:flex; align-items:center; gap:6px; }
+    .emerg { background:#c0281c; color:#fff; padding:14px 16px; border-radius:10px; }
+    .emerg b { font-size:17px; }
+    .reason { font-size:13px; padding:6px 0; border-bottom:1px solid var(--line); }
+    input[type=range]{width:100%}
+    @media (max-width:520px){ #left{max-height:38vh} #detail{max-height:40vh} }
+  </style>
+</head>
+<body>
+  <div id="banner"></div>
+  <div id="map"></div>
+  <div id="disclaimer">⚕ This is an environmental heat-risk estimate and safety guidance. It is NOT a medical diagnosis and does not replace a healthcare professional.</div>
+
+  <div id="left" class="card">
+    <h1>Ukraine heat hazard</h1>
+    <div class="muted">Hazard only — not health outcome.
+      <label class="chk" style="display:inline"><input type="checkbox" id="demo"/> demo heatwave</label>
+      <label class="chk" style="display:inline"><input type="checkbox" id="field"/> continuous field</label></div>
+
+    <label class="blk">Forecast date</label>
+    <input type="range" id="date" min="0" max="13" value="2" />
+    <div class="muted" id="dateLabel">—</div>
+
+    <label class="blk">Layer</label>
+    <div class="seg" id="layers">
+      <button data-l="tx95_exceedance" class="active">TX95 exceed</button>
+      <button data-l="tx90_exceedance">TX90 exceed</button>
+      <button data-l="nighttime">Tropical night</button>
+      <button data-l="heat_index">Heat Index</button>
+    </div>
+
+    <label class="blk">City search</label>
+    <input id="search" placeholder="Type a city (Kyiv, Львів…)" autocomplete="off" />
+
+    <label class="blk">Highest hazard on this date</label>
+    <div class="list" id="ranklist"></div>
+    <div class="legend" id="legend"></div>
+
+    <button class="btn" id="openProfile">Check my personal risk →</button>
+    <div class="foot" id="src">Loading data status…</div>
+  </div>
+
+  <div id="detail" class="card"></div>
+
+  <div id="overlay"><div id="sheet"></div></div>
+
+  <script>
+    const C = window.WAVES_CONFIG || {};
+    // On localhost use the configured/dev backend; when deployed (Vercel) the API
+    // is same-origin (/api/... via vercel.json rewrite).
+    const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const API = isLocal ? (C.API_BASE || "http://127.0.0.1:8010") : "";
+    const KYIV = {lat:50.4501, lon:30.5234, name:"Kyiv"};
+    const today = new Date();
+    const dayISO = (o)=>{ const d=new Date(today); d.setDate(d.getDate()+o); return d.toISOString().slice(0,10); };
+    let layer="tx95_exceedance", markers=[];
+    let cur = {...KYIV};                          // current selected location
+    const curDate = ()=> dayISO(+document.getElementById("date").value);
+    const scenario = ()=> document.getElementById("demo").checked ? "heatwave" : "";
+
+    const style = C.MAPTILER_KEY
+      ? `https://api.maptiler.com/maps/dataviz/style.json?key=${C.MAPTILER_KEY}`
+      : { version:8, sources:{}, layers:[{id:"bg",type:"background",paint:{"background-color":"#dfe7ef"}}] };
+    const map = new maplibregl.Map({ container:"map", style, center:[31.2,48.8], zoom:5 });
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+
+    function colorFor(p){
+      if (p.value===null||p.value===undefined) return "#9aa7b1";
+      if (layer==="nighttime") return p.value>=1?"#c0281c":"#4a90c2";
+      if (layer==="heat_index"){const v=p.value;return v>=41?"#c0281c":v>=32?"#e2681c":v>=27?"#e0a300":"#4a90c2";}
+      const v=p.value; return v>=4?"#c0281c":v>=2?"#e2681c":v>=0?"#e0a300":"#4a90c2";
+    }
+    function bandName(p){ if(layer==="nighttime")return p.value>=1?"high":"low";
+      const v=p.value; if(v===null)return"low"; return v>=4?"critical":v>=2?"high":v>=0?"moderate":"low"; }
+
+    async function loadStatus(){
+      try{
+        const d=await (await fetch(`${API}/api/data-status`)).json();
+        const c=d.providers.climatology_era5_land.detail, b=document.getElementById("banner");
+        if(c.baseline_status==="complete"){ b.className="complete";
+          b.textContent=`✓ Climatology baseline COMPLETE (${c.expected_baseline}). Forecast: Open-Meteo.`; }
+        else { b.textContent=`⚠ PROVISIONAL climatology — baseline ${JSON.stringify(c.baseline_years)} `+
+          `(sanity check only; full ${c.expected_baseline} still downloading). Thresholds not final.`; }
+        document.getElementById("src").textContent=
+          `Climatology ERA5-Land ${c.baseline_status} ${JSON.stringify(c.baseline_years)} · Forecast Open-Meteo · not a medical device`;
+      }catch(e){ document.getElementById("banner").textContent="⚠ Backend unreachable on :8010 — start uvicorn"; }
+    }
+
+    async function loadMap(){
+      const on=curDate(); document.getElementById("dateLabel").textContent=on+(scenario()?"  (DEMO heatwave)":"");
+      try{
+        const gj=await (await fetch("/data/boundaries/ukraine_oblasts.geojson")).json();
+        if(!map.getSource("oblasts")){ map.addSource("oblasts",{type:"geojson",data:gj});
+          map.addLayer({id:"ob-fill",type:"fill",source:"oblasts",paint:{"fill-color":"#8aa0b2","fill-opacity":0.06}});
+          map.addLayer({id:"ob-line",type:"line",source:"oblasts",paint:{"line-color":"#8aa0b2","line-width":0.8}}); }
+      }catch{}
+      let d; try{ d=await (await fetch(`${API}/api/risk-map?on=${on}&layer=${layer}&scenario=${scenario()}`)).json(); }
+      catch(e){ return; }
+      markers.forEach(m=>m.remove()); markers=[];
+      const ok=d.points.filter(p=>!p.error);
+      ok.forEach(p=>{ const el=document.createElement("div");
+        el.style.cssText=`width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);background:${colorFor(p)};cursor:pointer`;
+        el.title=p.name_en; el.onclick=()=>selectLoc(p.lat,p.lon,p.name_en);
+        markers.push(new maplibregl.Marker({element:el}).setLngLat([p.lon,p.lat]).addTo(map)); });
+      renderRank(ok); renderLegend();
+      await loadField();
+    }
+
+    async function loadField(){
+      const on=curDate(), want=document.getElementById("field").checked;
+      const ids=["grid-fill","grid-line"];
+      if(!want){ ids.forEach(i=>{ if(map.getLayer(i))map.removeLayer(i); }); if(map.getSource("grid"))map.removeSource("grid"); return; }
+      let gj; try{ gj=await (await fetch(`${API}/api/forecast-grid?on=${on}&layer=${layer==="nighttime"?"nighttime":layer}&spacing=1.0`)).json(); }catch(e){ return; }
+      if(map.getSource("grid")) map.getSource("grid").setData(gj);
+      else{
+        map.addSource("grid",{type:"geojson",data:gj});
+        const color = layer==="nighttime"
+          ? ["case",[">=",["get","value"],1],"#c0281c","#4a90c2"]
+          : ["step",["coalesce",["get","value"],-99], "#9aa7b1", 0,"#e0a300", 2,"#e2681c", 4,"#c0281c"];
+        map.addLayer({id:"grid-fill",type:"fill",source:"grid",paint:{"fill-color":color,"fill-opacity":0.45}}, map.getLayer("ob-line")?"ob-line":undefined);
+        map.addLayer({id:"grid-line",type:"line",source:"grid",paint:{"line-color":"#ffffff","line-width":0.3,"line-opacity":0.4}});
+      }
+    }
+    function renderRank(pts){
+      const s=[...pts].sort((a,b)=>((b.value??-99)-(a.value??-99))), box=document.getElementById("ranklist"); box.innerHTML="";
+      s.slice(0,8).forEach(p=>{ const r=document.createElement("div"); r.className="row"; const band=bandName(p);
+        r.innerHTML=`<span>${p.name_en}</span><span><b>${p.value===null?"n/a":p.value}</b> <span class="pill ${band}">${band}</span></span>`;
+        r.onclick=()=>{ map.flyTo({center:[p.lon,p.lat],zoom:8}); selectLoc(p.lat,p.lon,p.name_en); }; box.appendChild(r); });
+    }
+    function renderLegend(){ const L=document.getElementById("legend");
+      if(layer==="nighttime"){L.innerHTML=`<span><i style="background:#c0281c"></i>tropical night</span><span><i style="background:#4a90c2"></i>no</span>`;return;}
+      if(layer==="heat_index"){L.innerHTML=`<span><i style="background:#4a90c2"></i>&lt;27</span><span><i style="background:#e0a300"></i>27–32</span><span><i style="background:#e2681c"></i>32–41</span><span><i style="background:#c0281c"></i>≥41°C</span>`;return;}
+      L.innerHTML=`<span><i style="background:#4a90c2"></i>below</span><span><i style="background:#e0a300"></i>0–2</span><span><i style="background:#e2681c"></i>2–4</span><span><i style="background:#c0281c"></i>≥4°C over</span>`;
+    }
+
+    function selectLoc(lat,lon,name){ cur={lat,lon,name:name||`${lat.toFixed(2)},${lon.toFixed(2)}`}; showDetail(); }
+    async function showDetail(){
+      const box=document.getElementById("detail"); box.style.display="block";
+      box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span><b>${cur.name}</b><div class="muted">loading…</div>`;
+      const d=await (await fetch(`${API}/api/location-risk?latitude=${cur.lat}&longitude=${cur.lon}&scenario=${scenario()}`)).json();
+      const ev=d.events.primary_tx95_3day.length;
+      const rows=d.days.slice(0,7).map(x=>`<tr><td>${x.date.slice(5)}</td><td>${x.tmax??"–"}</td><td>${x.tmin??"–"}</td><td>${x.thresholds.tx95??"–"}</td><td>${x.exceeds_tx95?"⚠":""}</td><td>${x.tropical_night?"🌙":""}</td><td>${x.heat_index_max??"–"}</td></tr>`).join("");
+      box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span>`+
+        `<b>${cur.name}</b> <span class="pill ${d.hazard_level}">${d.hazard_level}</span>`+
+        `<div class="muted">${d.provisional?"provisional baseline":"full baseline"} · ${d.forecast.provider}</div>`+
+        `<table><thead><tr><th>date</th><th>Tmax</th><th>Tmin</th><th>TX95</th><th></th><th>night</th><th>HI</th></tr></thead><tbody>${rows}</tbody></table>`+
+        `<div class="foot">Heatwave events (3-day &gt;TX95) in 14d: <b>${ev}</b>. ${d.forecast.resolution_note}</div>`+
+        `<button class="btn" onclick="openProfile()">Check personal risk here →</button>`;
+    }
+
+    // ---------- Profile + result ----------
+    const PROFILE_KEY="waves_profile_v1";
+    function loadProfile(){ try{return JSON.parse(localStorage.getItem(PROFILE_KEY))||{}}catch{return {}} }
+    function saveProfile(p){ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+
+    function chk(id,label,checked){ return `<label class="chk"><input type="checkbox" id="${id}" ${checked?"checked":""}/> ${label}</label>`; }
+    function openProfile(){
+      const p=loadProfile(); const v=p.vulnerability||{},e=p.exposure||{},pr=p.protection||{},s=p.symptoms||{};
+      document.getElementById("overlay").style.display="flex";
+      document.getElementById("sheet").innerHTML=`
+        <span class="close" onclick="closeOverlay()">✕</span>
+        <h2>Personal heat-risk profile</h2>
+        <div class="muted">Location: <b>${cur.name}</b> · date ${curDate()}${scenario()?" (DEMO heatwave)":""}. No account, no names — stored only in your browser.</div>
+        <fieldset><legend>Emergency symptoms now</legend><div class="grid2">
+          ${chk("s_conf","Confusion",s.confusion)}${chk("s_faint","Fainting / unconscious",s.loss_of_consciousness)}
+          ${chk("s_seiz","Seizure",s.seizure)}${chk("s_chest","Chest pain",s.chest_pain)}
+          ${chk("s_breath","Severe breathlessness",s.severe_shortness_of_breath)}${chk("s_stroke","Stroke-like symptoms",s.stroke_like_symptoms)}
+          ${chk("s_drink","Cannot drink",s.cannot_drink)}${chk("s_weak","Severe weakness",s.severe_weakness)}
+        </div></fieldset>
+        <fieldset><legend>Age & health (optional)</legend>
+          <label class="blk">Age band</label>
+          <select id="age">${["","under_5","5_17","18_64","65_74","75_plus"].map(a=>`<option value="${a}" ${v.age_band===a?"selected":""}>${a||"prefer not to answer"}</option>`).join("")}</select>
+          <div class="grid2" style="margin-top:8px">
+          ${chk("v_preg","Pregnancy",v.pregnancy)}${chk("v_cvd","Cardiovascular disease",v.cardiovascular)}
+          ${chk("v_hf","Heart failure",v.heart_failure)}${chk("v_htn","Hypertension",v.hypertension)}
+          ${chk("v_ckd","Chronic kidney disease",v.ckd)}${chk("v_dia","Diabetes",v.diabetes)}
+          ${chk("v_resp","Chronic respiratory disease",v.chronic_respiratory)}${chk("v_med","Medicine affecting hydration/BP",v.thermoregulation_medication)}
+          ${chk("v_fluid","Prescribed fluid restriction",v.fluid_restriction)}${chk("v_mob","Limited mobility",v.limited_mobility)}
+          ${chk("v_alone","Lives alone",v.living_alone)}
+          </div></fieldset>
+        <fieldset><legend>Exposure</legend><div class="grid2">
+          ${chk("e_work","Outdoor work",e.outdoor_work)}${chk("e_sport","Intense outdoor sport",e.intense_outdoor_sport)}
+          ${chk("e_sun","Long time in direct sun",e.direct_sun)}${chk("e_transport","Hot transport",e.hot_transport)}
+          ${chk("e_top","Top-floor / overheated home",e.top_floor_or_overheated_home)}${chk("e_night","Night-time exposure",e.nighttime_exposure)}
+        </div></fieldset>
+        <fieldset><legend>Protection available</legend><div class="grid2">
+          ${chk("p_ac","Air conditioning",pr.air_conditioning)}${chk("p_cool","Access to a cooler place",pr.access_to_cooler_place)}
+          ${chk("p_water","Reliable water",pr.reliable_water)}${chk("p_social","Social support / check-ins",pr.social_support)}
+          ${chk("p_sched","Can change schedule",pr.can_change_schedule)}${chk("p_elec","Reliable electricity",pr.reliable_electricity)}
+        </div></fieldset>
+        <button class="btn" onclick="submitProfile()">See my explained risk →</button>
+        <button class="btn sec" onclick="closeOverlay()">Cancel</button>
+        <div class="foot">Not a medical diagnosis. Emergency symptoms always trigger an urgent warning.</div>`;
+    }
+    function closeOverlay(){ document.getElementById("overlay").style.display="none"; }
+    const g=(id)=>document.getElementById(id)?.checked||false;
+    async function submitProfile(){
+      const profile={
+        vulnerability:{age_band:document.getElementById("age").value||null, pregnancy:g("v_preg"),
+          cardiovascular:g("v_cvd"), heart_failure:g("v_hf"), hypertension:g("v_htn"), ckd:g("v_ckd"),
+          diabetes:g("v_dia"), chronic_respiratory:g("v_resp"), thermoregulation_medication:g("v_med"),
+          fluid_restriction:g("v_fluid"), limited_mobility:g("v_mob"), living_alone:g("v_alone")},
+        exposure:{outdoor_work:g("e_work"), intense_outdoor_sport:g("e_sport"), direct_sun:g("e_sun"),
+          hot_transport:g("e_transport"), top_floor_or_overheated_home:g("e_top"), nighttime_exposure:g("e_night"),
+          hours_outside: g("e_work")?8:1},
+        protection:{air_conditioning:g("p_ac"), access_to_cooler_place:g("p_cool"), reliable_water:g("p_water"),
+          social_support:g("p_social"), can_change_schedule:g("p_sched"), reliable_electricity:g("p_elec")},
+        symptoms:{confusion:g("s_conf"), loss_of_consciousness:g("s_faint"), seizure:g("s_seiz"),
+          chest_pain:g("s_chest"), severe_shortness_of_breath:g("s_breath"), stroke_like_symptoms:g("s_stroke"),
+          cannot_drink:g("s_drink"), severe_weakness:g("s_weak")},
+        latitude:cur.lat, longitude:cur.lon, date:curDate()};
+      saveProfile(profile);
+      let d; try{ d=await (await fetch(`${API}/api/profile-risk?scenario=${scenario()}`,
+        {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(profile)})).json(); }
+      catch(e){ document.getElementById("sheet").innerHTML=`<span class="close" onclick="closeOverlay()">✕</span><p>Could not reach the risk service.</p>`; return; }
+      renderResult(d);
+    }
+    function renderResult(d){
+      const sheet=document.getElementById("sheet");
+      let html=`<span class="close" onclick="closeOverlay()">✕</span>`;
+      if(d.emergency&&d.emergency.active){
+        html+=`<div class="emerg"><b>⚠ EMERGENCY — call 103</b><p>${d.emergency.message_en}</p>
+          <div style="font-size:12px">Reported: ${d.emergency.symptoms.join(", ").replace(/_/g," ")}</div></div>`;
+      }else{
+        html+=`<h2>Your heat-risk: <span class="pill ${d.category}">${d.category.toUpperCase()}</span></h2>
+          <div class="muted">Confidence: ${d.confidence}. ${d.protection_applied?"Protective factors lowered this by one level.":""}</div>
+          <h3 style="font-size:13px;margin:12px 0 4px">Top reasons increasing risk</h3>
+          ${(d.top_reasons.length?d.top_reasons:[{detail:"No specific escalating factors."}]).map(r=>`<div class="reason">• ${r.detail}</div>`).join("")}
+          ${d.protective_factors.length?`<h3 style="font-size:13px;margin:12px 0 4px">Protective factors you have</h3><div class="muted">${d.protective_factors.join(", ").replace(/_/g," ")}</div>`:""}`;
+      }
+      if(d.guardrails.length){ html+=`<h3 style="font-size:13px;margin:12px 0 4px">Important safety notes</h3>`+
+        d.guardrails.map(x=>`<div class="reason" style="color:#a15c00">⚠ ${x.en}</div>`).join(""); }
+      if(d.recommendations.length){ html+=`<h3 style="font-size:13px;margin:12px 0 4px">Recommended actions</h3>`+
+        d.recommendations.map(r=>`<div class="reason">✓ ${r.en} <span class="muted">(${r.source_org||"src"}, ${r.source_date||""})</span></div>`).join(""); }
+      html+=`<div class="foot">${d.disclaimer_en} · rule engine v${d.rule_engine_version}</div>
+        <button class="btn sec" onclick="openProfile()">Edit profile</button>`;
+      sheet.innerHTML=html;
+    }
+
+    // controls
+    document.getElementById("date").oninput=()=>{ loadMap(); if(document.getElementById("detail").style.display!=="none") showDetail(); };
+    document.getElementById("demo").onchange=()=>{ loadMap(); showDetail(); };
+    document.getElementById("field").onchange=loadField;
+    document.getElementById("openProfile").onclick=openProfile;
+    document.querySelectorAll("#layers button").forEach(b=>b.onclick=()=>{
+      document.querySelectorAll("#layers button").forEach(x=>x.classList.remove("active")); b.classList.add("active"); layer=b.dataset.l; loadMap(); });
+    let st; document.getElementById("search").oninput=(e)=>{ clearTimeout(st); st=setTimeout(async()=>{
+      const q=e.target.value.trim(); if(!q)return; const d=await (await fetch(`${API}/api/cities?q=${encodeURIComponent(q)}`)).json();
+      if(d.cities.length){const c=d.cities[0]; map.flyTo({center:[c.lon,c.lat],zoom:8}); selectLoc(c.lat,c.lon,c.name_en);} },350); };
+    map.on("click",(e)=>selectLoc(e.lngLat.lat,e.lngLat.lng));
+    map.on("load",async()=>{ await loadStatus(); await loadMap(); selectLoc(KYIV.lat,KYIV.lon,"Kyiv"); });
+  </script>
+</body>
+</html>

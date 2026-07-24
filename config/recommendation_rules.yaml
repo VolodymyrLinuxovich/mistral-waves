@@ -1,0 +1,72 @@
+# Source-controlled safety recommendations (spec sections 9, 10).
+# Bilingual (uk/en). Every entry cites a source organisation + date + review date.
+# These are conservative, evidence-informed guidance — NOT medical instructions.
+version: "0.1.0"
+global_disclaimer:
+  uk: >
+    Це оцінка ризику, пов'язаного зі спекою, та поради з безпеки. Це не медичний
+    діагноз і не замінює консультацію лікаря.
+  en: >
+    This is an environmental heat-risk estimate and safety guidance. It is not a
+    medical diagnosis and does not replace a healthcare professional.
+
+recommendations:
+  - id: REC-GEN-001
+    triggers: {min_category: moderate}
+    uk: "Пийте воду регулярно, уникайте прямого сонця 11:00-17:00, провітрюйте житло вночі."
+    en: "Drink water regularly, avoid direct sun 11:00-17:00, ventilate at night."
+    source_org: "WHO / WMO Heat-Health"
+    source_date: "2021-06"
+    review_date: "2026-07-23"
+    contraindications: []
+
+  - id: REC-FLUID-RESTRICTED
+    # Heart failure / CKD / prescribed fluid restriction: NEVER give a fixed volume.
+    triggers: {any_of: [heart_failure, ckd, fluid_restriction]}
+    uk: >
+      Дотримуйтесь плану вживання рідини, призначеного вашим лікарем. Не орієнтуйтесь
+      на універсальну кількість води. Обговоріть із лікарем план дій у спеку.
+    en: >
+      Follow the fluid plan prescribed by your clinician. Do not use a universal
+      water amount. Discuss a hot-weather plan with your clinician.
+    source_org: "Conservative safety rule (see docs/medical_safety.md)"
+    source_date: "2026-07-23"
+    review_date: "2026-07-23"
+    contraindications: ["Overrides any generic hydration advice."]
+
+  - id: REC-MEDICATION
+    triggers: {any_of: [thermoregulation_medication]}
+    uk: >
+      Деякі ліки впливають на гідратацію, тиск або терморегуляцію. Не припиняйте і
+      не змінюйте прийом ліків без поради фахівця. Запитайте лікаря або фармацевта
+      про план на спекотні дні.
+    en: >
+      Some medicines affect hydration, blood pressure or thermoregulation. Do not
+      stop or change medication without professional advice. Ask a clinician or
+      pharmacist about a hot-day plan.
+    source_org: "Conservative safety rule"
+    source_date: "2026-07-23"
+    review_date: "2026-07-23"
+    contraindications: []
+
+  - id: REC-OUTDOOR-WORK
+    triggers: {any_of: [outdoor_work, intense_outdoor_sport], min_category: high}
+    uk: "Обмежте фізичне навантаження, робіть перерви в тіні, використовуйте графік роботи в прохолодні години."
+    en: "Restrict exertion, take shaded breaks, shift activity to cooler hours."
+    source_org: "NIOSH / occupational heat guidance"
+    source_date: "2016"
+    review_date: "2026-07-23"
+    contraindications: []
+
+  - id: REC-EMERGENCY-103
+    triggers: {emergency_red_flag: true}
+    uk: >
+      Небезпечні симптоми. Негайно зверніться по екстрену медичну допомогу за
+      номером 103. Застосунок не замінює екстрену допомогу.
+    en: >
+      Emergency symptoms. Seek emergency medical assistance immediately by calling
+      103. This app is not a substitute for emergency care.
+    source_org: "Ukraine emergency medical service (103)"
+    source_date: "2026-07-23"
+    review_date: "2026-07-23"
+    contraindications: []

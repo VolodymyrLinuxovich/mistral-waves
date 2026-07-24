@@ -1,0 +1,27 @@
+# Local/provisional deployment. `docker compose up --build`
+# then open http://localhost:8080/frontend/index.html
+#
+# NOTE: not built in the current dev sandbox (no Docker daemon). The equivalent
+# no-Docker run is scripts/run_local.sh, which is what was verified here.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8010:8010"
+    environment:
+      - FORECAST_PROVIDER=open_meteo
+    restart: unless-stopped
+
+  web:
+    # Serves the repo root so the static frontend can read ../data/boundaries.
+    image: python:3.12-slim
+    working_dir: /site
+    command: python -m http.server 8080
+    volumes:
+      - ./:/site:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api

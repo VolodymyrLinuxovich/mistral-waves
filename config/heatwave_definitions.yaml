@@ -1,0 +1,49 @@
+# Heatwave event definitions for the Ukraine heat-health MVP.
+# Versioned, human-editable source of truth. The detection engine
+# (backend/app/services/heat/detection.py) mirrors these as defaults.
+#
+# Comparison is STRICT (>). Baseline climatology: ERA5-Land 1991-2020,
+# calendar-day +/-15-day window (see thresholds.py).
+version: "0.1.0"
+baseline:
+  product: "ERA5-Land"
+  period: "1991-2020"
+  window_days: 15          # +/- window around each calendar day
+  percentile_method: "linear (numpy type 7)"
+
+definitions:
+  primary_tx95:            # PRIMARY health heatwave
+    description: ">=3 consecutive days with Tmax > local calendar-day TX95"
+    variable: tmax
+    threshold: TX95
+    min_duration: 3
+    role: primary_health
+
+  early_tx90:              # EARLY heat signal
+    description: ">=3 consecutive days with Tmax > local calendar-day TX90"
+    variable: tmax
+    threshold: TX90
+    min_duration: 3
+    role: early_warning
+
+  extreme:                 # EXTREME heat (any trigger)
+    description: "Tmax > TX99, or very-strong/extreme UTCI, or validated extreme EHF"
+    triggers:
+      - {variable: tmax, threshold: TX99}
+      - {index: utci, category: "very_strong_or_extreme"}
+      - {index: ehf, category: "extreme"}
+    role: emergency
+
+  nighttime_heat:          # NIGHTTIME trigger (shown separately)
+    description: "Tmin >= 20 C OR Tmin > local TN90"
+    variable: tmin
+    absolute_c: 20.0
+    threshold: TN90
+    role: recovery_loss
+
+  sensitivity_tx90_2day:   # TEAM'S ORIGINAL definition — sensitivity mode ONLY
+    description: ">=2 consecutive days with Tmax > TX90 (NOT the sole health definition)"
+    variable: tmax
+    threshold: TX90
+    min_duration: 2
+    role: sensitivity_only

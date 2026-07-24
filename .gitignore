@@ -1,0 +1,29 @@
+# Secrets / env
+.env
+.env.local
+*.cdsapirc
+frontend/config.js
+
+# Data (large / downloaded / generated — regenerable, never commit)
+data/raw/
+data/cache/
+data/processed/
+data/boundaries/*.geojson
+
+# Build artifacts (generated; public/ also contains the client MapTiler key)
+public/
+tmp/
+output/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+frontend/.next/
+
+# OS
+.DS_Store
+.vercel

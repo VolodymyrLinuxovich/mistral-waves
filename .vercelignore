@@ -1,0 +1,18 @@
+# Keep the Vercel upload small and free of secrets / huge raw data.
+.venv/
+.env
+.env.local
+data/raw/
+data/cache/
+data/processed/*.nc
+data/processed/*.nc.tmp
+data/metadata/
+tmp/
+output/
+**/__pycache__/
+*.pyc
+teplovi-khvyli-doslidzhennia.pdf
+frontend/map-demo.html
+scripts/
+epidemiology/
+pipelines/

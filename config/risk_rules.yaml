@@ -1,0 +1,62 @@
+# Deterministic personal-risk rule matrix (spec section 9).
+# NOT a probability model. No percentages. Fully explainable.
+# The engine (backend/app/risk/) reads this file; changing rules == bumping version.
+version: "0.1.0"
+
+categories: [low, moderate, high, critical]
+
+# 1) BASE category is set by environmental hazard alone (hazard != health outcome).
+base_from_hazard:
+  # Evaluated top-down; first match wins.
+  - {when: "extreme (TX99 or UTCI very_strong/extreme or EHF extreme)", category: critical}
+  - {when: "primary_tx95 active AND duration >= 3", category: high}
+  - {when: "early_tx90 active OR heat_index >= 32C", category: moderate}
+  - {when: "otherwise", category: low}
+
+# 2) ESCALATION: each rule may raise the category by the stated number of steps.
+#    Escalations stack but the result is clamped at 'critical'.
+escalations:
+  - {id: strong_hazard_x_major_vuln, steps: 1,
+     when: "category >= high AND (age>=75 OR cardiovascular OR ckd OR heart_failure OR pregnancy)"}
+  - {id: tropical_night_no_recovery, steps: 1,
+     when: "nighttime_heat active"}
+  - {id: prolonged_outdoor_exposure, steps: 1,
+     when: "outdoor_work OR (hours_outside >= 4 AND direct_sun)"}
+  - {id: no_cooling_or_water, steps: 1,
+     when: "no_cooling AND no_reliable_water"}
+  - {id: multiple_vulnerabilities, steps: 1,
+     when: "vulnerability_count >= 3"}
+
+# 3) PROTECTION: may lower a NON-EXTREME category by at most ONE level total.
+#    Never applies at 'critical', never below 'low'.
+protection:
+  max_downgrade_steps: 1
+  only_if_base_below: critical
+  factors: [air_conditioning, access_to_cooler_place, reliable_water,
+            social_support, can_change_schedule, reliable_electricity]
+  min_factors_for_downgrade: 2
+
+# 4) HARD OVERRIDES — evaluated LAST, cannot be reduced by protection.
+overrides:
+  emergency_red_flags:            # forces CRITICAL + emergency message
+    category: critical
+    symptoms: [confusion, loss_of_consciousness, seizure, cannot_drink,
+               severe_weakness, hot_skin_with_altered_mental_state,
+               rapid_deterioration, severe_shortness_of_breath, chest_pain,
+               stroke_like_symptoms]
+    action: "Direct user to emergency medical assistance (call 103)."
+  extreme_hazard_floor:           # extreme environment can't be downgraded below high
+    min_category: high
+    when: "base == critical"
+
+confidence_labels:
+  - {label: "limited signal", when: "forecast only, no observed confirmation"}
+  - {label: "moderate signal", when: "short observed run or single index"}
+  - {label: "strong environmental signal", when: "multi-day observed + multiple indices agree"}
+
+# Vulnerability fields collected (yes/no/unsure/prefer_not_to_answer where apt).
+vulnerability_fields:
+  [young_child, older_adult, pregnancy, cardiovascular, heart_failure,
+   hypertension, ckd, diabetes, chronic_respiratory, obesity,
+   thermoregulation_medication, outdoor_work, intense_outdoor_sport,
+   no_cooling, no_reliable_water, living_alone, limited_mobility, power_outage]

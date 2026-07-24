@@ -1,0 +1,11 @@
+# Runtime-only deps actually imported by the API (slim image).
+# Full dev/pipeline set (geopandas/rasterio/cdsapi/statsmodels) is in requirements.txt.
+fastapi==0.139.*
+uvicorn[standard]==0.32.*
+pydantic==2.*
+pyyaml==6.*
+httpx==0.28.*
+numpy==2.*
+pandas==2.*
+xarray==2024.*
+netCDF4==1.7.*
