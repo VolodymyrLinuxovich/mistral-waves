@@ -282,6 +282,7 @@ def _aggregate_region(points: list, on: str, assessments: dict) -> dict:
             "hi": day["heat_index_max"], "hx": day["humidex_max"],
             "trop": bool(day["tropical_night"]), "trop_ahead": trop_ahead,
             "tx95_event": bool(day["in_primary_event"]), "tx90_event": tx90_event,
+            "sev": day.get("severity_level", 0), "sev_reasons": day.get("severity_reasons", []),
             "from_cache": a["forecast"]["from_cache"], "provider": a["forecast"]["provider"],
         })
     if not res:
@@ -330,7 +331,26 @@ def _aggregate_region(points: list, on: str, assessments: dict) -> dict:
         "data_status": "synthetic" if any("SYNTHETIC" in r["provider"] for r in res)
                        else ("cached" if all(r["from_cache"] for r in res) else "live"),
     }
-    agg["category"], agg["reasons"] = _classify(agg)
+
+    # Severity aggregation (authoritative engine). Default district statistic is
+    # the 90th-percentile "affected-area severity" — NOT one-cell-paints-all.
+    from app.services.severity import LEVELS, PALETTE
+    levels = np.array([r["sev"] for r in res], dtype="int32")
+    max_sev = int(levels.max()); mean_sev = float(levels.mean())
+    p90_sev = int(round(float(np.percentile(levels, 90))))
+    pct = lambda t: round(100.0 * float((levels >= t).mean()), 1)
+    max_reasons = next((r["sev_reasons"] for r in res if r["sev"] == max_sev), [])
+    agg.update({
+        "severity_level": p90_sev, "severity_label": LEVELS[p90_sev],
+        "severity_color": PALETTE[p90_sev], "severity_statistic": "90th-percentile district hazard",
+        "max_severity_level": max_sev, "max_severity_label": LEVELS[max_sev],
+        "mean_severity_level": round(mean_sev, 2),
+        "p90_severity_level": p90_sev,
+        "pct_level1plus": pct(1), "pct_level2plus": pct(2),
+        "pct_level3plus": pct(3), "pct_level4": pct(4),
+        "hottest_cell_tmax": agg["tmax_max"],
+        "category": LEVELS[p90_sev], "reasons": max_reasons,
+    })
     return agg
 
 

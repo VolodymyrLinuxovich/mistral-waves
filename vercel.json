@@ -9,7 +9,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": "{backend/**,config/**,data/processed/*.npz,data/processed/*.meta.json,data/demo/**,data/boundaries/kyiv_districts.geojson,data/boundaries/kyiv_districts.provenance.json}"
+      "includeFiles": "{backend/**,config/**,data/processed/ukraine_heat_thresholds_provisional.npz,data/processed/ukraine_heat_thresholds_provisional.meta.json,data/processed/baseline_metadata.json,data/processed/historical_events.json,data/processed/historical_footprints/**,data/demo/**,data/boundaries/kyiv_districts.geojson,data/boundaries/kyiv_districts.provenance.json}"
     }
   }
 }

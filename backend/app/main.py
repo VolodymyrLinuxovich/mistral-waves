@@ -205,6 +205,74 @@ def profile_risk(req: ProfileRiskRequest,
     return assess_profile(req)
 
 
+@app.get("/api/heatwave-summary")
+def heatwave_summary(
+    on: str = Query(..., alias="date", description="YYYY-MM-DD"),
+    mode: str = Query("live", description="live|historical|synthetic"),
+    event_id: str = Query(""),
+    spacing: float = Query(1.0, ge=0.5, le=2.0),
+):
+    try:
+        date.fromisoformat(on)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="invalid date; use YYYY-MM-DD")
+    if mode == "historical":
+        from app.services import historical
+        eid = event_id or historical.default_event_id()
+        if not eid:
+            raise HTTPException(status_code=404, detail="no historical events available")
+        res = historical.event_summary(eid, on)
+        if res is None:
+            raise HTTPException(status_code=404, detail=f"unknown event {eid}")
+        return res
+    from app.services.heatwave import summary
+    scen = "heatwave" if mode == "synthetic" else None
+    return summary(on, mode=mode, spacing=spacing, scenario=scen)
+
+
+@app.get("/api/heatwave-footprint")
+def heatwave_footprint(
+    on: str = Query(..., alias="date", description="YYYY-MM-DD"),
+    mode: str = Query("live", description="live|historical|synthetic"),
+    event_id: str = Query(""),
+    spacing: float = Query(1.0, ge=0.5, le=2.0),
+):
+    try:
+        date.fromisoformat(on)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="invalid date; use YYYY-MM-DD")
+    if mode == "historical":
+        from app.services import historical
+        eid = event_id or historical.default_event_id()
+        if not eid:
+            raise HTTPException(status_code=404, detail="no historical events available")
+        res = historical.event_footprint(eid, on)
+        if res is None:
+            raise HTTPException(status_code=404, detail=f"unknown event {eid}")
+        return res
+    from app.services.heatwave import footprint
+    scen = "heatwave" if mode == "synthetic" else None
+    return footprint(on, mode=mode, spacing=spacing, scenario=scen)
+
+
+@app.get("/api/historical-events")
+def historical_events(year: int = Query(None), minimum_level: int = Query(0, ge=0, le=4),
+                      limit: int = Query(50, ge=1, le=200)):
+    from app.services import historical
+    if not historical.available():
+        raise HTTPException(status_code=404, detail="historical catalogue not built")
+    return historical.list_events(year=year, minimum_level=minimum_level, limit=limit)
+
+
+@app.get("/api/historical-event/{event_id}")
+def historical_event(event_id: str):
+    from app.services import historical
+    res = historical.event_detail(event_id)
+    if res is None:
+        raise HTTPException(status_code=404, detail=f"unknown event {event_id}")
+    return res
+
+
 @app.get("/api/city-regions")
 def city_regions(city: str = Query("kyiv")):
     """District polygons + city boundary/metadata for a city (validated OSM)."""

@@ -22,6 +22,7 @@ from app.services.heat.detection import (
     detect_sensitivity_2day,
 )
 from app.services.heat.indices import heat_index, humidex, is_tropical_night
+from app.services.severity import classify_series
 from app.services.thresholds_store import get_store
 
 HAZARD_DISCLAIMER = (
@@ -140,6 +141,22 @@ def assess_location(lat: float, lon: float, forecast_days: int = 14,
             if ev.start.isoformat() <= d["date"] <= ev.end.isoformat():
                 d["in_primary_event"] = True
 
+    # Attach authoritative severity (same engine as the national footprint).
+    sev_series = classify_series([{
+        "date": d["date"], "tmax": d["tmax"], "tmin": d["tmin"],
+        "tx90": d["thresholds"].get("tx90"), "tx95": d["thresholds"].get("tx95"),
+        "tx99": d["thresholds"].get("tx99"), "tn90": d["thresholds"].get("tn90"),
+        "heat_index": d["heat_index_max"], "humidex": d["humidex_max"],
+    } for d in day_summaries])
+    for d, sv in zip(day_summaries, sev_series):
+        d["severity_level"] = sv["severity_level"]
+        d["severity_label"] = sv["severity_label"]
+        d["severity_color"] = sv["severity_color"]
+        d["severity_reasons"] = sv["category_reasons"]
+        d["tx90_run"] = sv["current_tx90_run_length"]
+        d["tx95_run"] = sv["current_tx95_run_length"]
+        d["consecutive_tropical_nights"] = sv["consecutive_tropical_nights"]
+
     def ser_events(res) -> list[dict]:
         return [{
             "definition": e.definition,
@@ -227,7 +244,14 @@ def assess_city_points(on: str, layer: str = "tx95_exceedance",
             "tmax": day["tmax"], "tmin": day["tmin"],
             "thresholds": th,
             "tropical_night": day["tropical_night"],
+            "consecutive_tropical_nights": day.get("consecutive_tropical_nights", 0),
             "in_primary_event": day["in_primary_event"],
+            "severity_level": day.get("severity_level", 0),
+            "severity_label": day.get("severity_label", "No heatwave"),
+            "severity_color": day.get("severity_color"),
+            "tx90_run": day.get("tx90_run", 0),
+            "tx95_run": day.get("tx95_run", 0),
+            "reasons": day.get("severity_reasons", []),
             "value": None if value is None else round(value, 2),
         })
     store = get_store()

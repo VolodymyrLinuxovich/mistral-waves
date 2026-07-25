@@ -20,9 +20,11 @@ import numpy as np
 PROCESSED = Path(__file__).resolve().parents[3] / "data" / "processed"
 EXPECTED_BASELINE = "1991-2020"
 
-# Priority order: full npz, provisional npz, full nc, provisional nc.
+# Priority order: full baseline, then the adaptive provisional product, then the
+# legacy 2020-only provisional, then .nc fallbacks (local dev).
 CANDIDATES = [
     PROCESSED / "ukraine_heat_thresholds_1991_2020.npz",
+    PROCESSED / "ukraine_heat_thresholds_provisional.npz",
     PROCESSED / "ukraine_heat_thresholds_2020_provisional.npz",
     PROCESSED / "ukraine_heat_thresholds_1991_2020.nc",
     PROCESSED / "ukraine_heat_thresholds_2020_provisional.nc",
@@ -98,8 +100,12 @@ class ThresholdStore:
         return {
             "baseline_status": status,
             "baseline_years": years,
+            "baseline_year_count": int(self._meta.get("baseline_year_count", len(years))),
             "expected_baseline": str(self._meta.get("expected_baseline", EXPECTED_BASELINE)),
+            "expected_year_count": int(self._meta.get("expected_year_count", 30)),
+            "threshold_version": str(self._meta.get("threshold_version", "unknown")),
             "provisional": status != "complete",
+            "warning": str(self._meta.get("warning", "")) or None,
             "tn90_status": str(self._meta.get("tn90_status", "unknown")),
             "source_file": self._loaded_path.name if self._loaded_path else None,
         }

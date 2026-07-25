@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>Waves — Ukraine heat hazard & personal risk</title>
+  <title>Waves — Ukraine heatwave hazard &amp; personal risk</title>
   <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="./config.js"></script>
@@ -13,79 +13,67 @@
     html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;color:var(--fg)}
     #map{position:absolute;inset:0}
     .card{background:var(--panel);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.16)}
-    #banner{position:absolute;top:0;left:0;right:0;z-index:5;background:#8a4b00;color:#fff;font-size:12.5px;padding:7px 14px;text-align:center}
-    #banner.complete{background:#155e2e}
-    #banner.synthetic{background:#5a2b8a}
-    #disclaimer{position:absolute;bottom:0;left:0;right:0;z-index:5;background:#111a22;color:#e9eef2;font-size:11px;padding:6px 14px;text-align:center}
-    /* breadcrumb */
-    #crumbs{position:absolute;top:44px;left:12px;z-index:4;display:flex;gap:6px;align-items:center;
-      background:var(--panel);border-radius:10px;padding:6px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
-    #crumbs a{color:#1d3b57;cursor:pointer;text-decoration:none}
-    #crumbs a:hover{text-decoration:underline}
-    #crumbs .sep{color:#9aa7b1}
-    #crumbs .cur{font-weight:600}
-    /* side panel */
-    #panel{position:absolute;top:88px;left:12px;z-index:3;width:min(360px,94vw);
-      max-height:calc(100vh - 130px);overflow:auto;padding:14px 16px}
-    h1{font-size:16px;margin:0 0 2px} .muted{color:#5c6b78;font-size:12px}
+    #banner{position:absolute;top:0;left:0;right:0;z-index:6;font-size:12.5px;padding:7px 14px;text-align:center;color:#fff;background:#8a4b00}
+    #banner.complete{background:#155e2e}#banner.synthetic{background:#5a2b8a}#banner.historical{background:#1d4e6b}
+    #disclaimer{position:absolute;bottom:0;left:0;right:0;z-index:6;background:#111a22;color:#e9eef2;font-size:11px;padding:6px 14px;text-align:center}
+    #crumbs{position:absolute;top:44px;left:12px;z-index:4;display:flex;gap:6px;align-items:center;background:var(--panel);border-radius:10px;padding:6px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
+    #crumbs a{color:#1d3b57;cursor:pointer}#crumbs a:hover{text-decoration:underline}#crumbs .sep{color:#9aa7b1}#crumbs .cur{font-weight:600}
+    #panel{position:absolute;top:88px;left:12px;z-index:3;width:min(370px,94vw);max-height:calc(100vh-190px);overflow:auto;padding:14px 16px}
+    h1{font-size:16px;margin:0 0 2px}.muted{color:#5c6b78;font-size:12px}
     .seg{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
     .seg button,select,input{font:inherit;font-size:12px;padding:6px 9px;border:1px solid #cdd4da;border-radius:8px;background:#fff;cursor:pointer}
     .seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .seg button:focus-visible,input:focus-visible,#crumbs a:focus-visible{outline:3px solid #4a90c2;outline-offset:1px}
+    .seg button:focus-visible,input:focus-visible,#crumbs a:focus-visible,.row:focus-visible{outline:3px solid #4a90c2;outline-offset:1px}
     label.blk{display:block;font-size:11px;color:#5c6b78;margin:8px 0 3px;text-transform:uppercase;letter-spacing:.03em}
     input#search{width:100%}
-    .list{margin:6px 0 0;border-top:1px solid var(--line)}
-    .row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
-    .row:hover,.row:focus-visible{background:#f6f8fa}
-    .row.sel{background:#eaf1f7}
-    .pill{font-size:11px;padding:1px 7px;border-radius:999px;color:#fff}
-    .low{background:#4a90c2}.moderate{background:#e0a300}.high{background:#e2681c}.critical{background:#c0281c}
-    .sym{font-weight:700;margin-right:3px}  /* text symbol alongside colour */
-    .legend{display:flex;gap:10px;font-size:11px;margin-top:8px;align-items:center;flex-wrap:wrap}
-    .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:3px;vertical-align:-1px}
+    #headline{font-size:13px;padding:8px 10px;border-radius:8px;background:#f2f5f7;margin:8px 0}
+    #headline b{display:block;font-size:14px}
+    .list{margin:4px 0 0;border-top:1px solid var(--line)}
+    .row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
+    .row:hover{background:#f6f8fa}.row.sel{background:#eaf1f7}
+    .row .sub{font-size:11px;color:#5c6b78}
+    .lvpill{font-size:11px;padding:1px 7px;border-radius:999px;color:#fff;white-space:nowrap}
+    .legend{display:flex;flex-direction:column;gap:3px;font-size:11.5px;margin-top:8px}
+    .legend div{display:flex;align-items:center;gap:6px}.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
     .btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;width:100%;margin-top:10px}
     .btn.sec{background:#eef2f5;color:var(--accent)}
     details>summary{cursor:pointer;font-size:11px;color:#5c6b78;text-transform:uppercase;letter-spacing:.03em;margin:8px 0 3px}
-    table{width:100%;border-collapse:collapse;font-size:12px}
-    th,td{text-align:right;padding:3px 4px;border-bottom:1px solid var(--line)}
-    th:first-child,td:first-child{text-align:left}
-    .foot{font-size:11px;color:#5c6b78;margin-top:8px}
-    .warnrow{color:#a15c00;font-size:11.5px;margin-top:6px}
-    input[type=range]{width:100%}
-    /* overlay (profile/result) */
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:right;padding:3px 4px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
+    .foot{font-size:11px;color:#5c6b78;margin-top:8px}.warnrow{color:#a15c00;font-size:11.5px;margin-top:6px}
+    /* timeline */
+    #timeline{position:absolute;bottom:26px;left:12px;right:12px;z-index:4;display:flex;gap:8px;align-items:center;background:var(--panel);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
+    #tlbtn{font-size:14px;width:34px;height:34px;border-radius:8px;border:1px solid #cdd4da;background:#fff;cursor:pointer;flex:none}
+    #tltrack{flex:1;display:flex;gap:2px;align-items:stretch;height:34px}
+    .tlcell{flex:1;border-radius:3px;cursor:pointer;min-width:6px;position:relative}
+    .tlcell.sel{outline:2px solid #16202a}
+    #tllabel{font-size:12px;min-width:150px;text-align:right}
     #overlay{position:fixed;inset:0;z-index:10;background:rgba(10,15,20,.45);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
     #sheet{background:#fff;border-radius:14px;width:min(520px,96vw);padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-    fieldset{border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:10px 12px}
-    legend{font-size:12px;color:#5c6b78;padding:0 6px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
-    .chk{font-size:13px;display:flex;align-items:center;gap:6px}
-    .emerg{background:#c0281c;color:#fff;padding:14px 16px;border-radius:10px}
-    .emerg b{font-size:17px}
-    .reason{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
-    .close{float:right;cursor:pointer;color:#5c6b78;font-size:15px}
-    /* mobile: panel -> bottom sheet */
-    @media(max-width:640px){
-      #crumbs{top:40px;font-size:12px}
-      #panel{top:auto;bottom:26px;left:0;right:0;width:100%;max-height:46vh;border-radius:14px 14px 0 0}
-      #ranklist-wrap{display:none} #ranklist-wrap[open]{display:block}
-    }
+    fieldset{border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:10px 12px}legend{font-size:12px;color:#5c6b78;padding:0 6px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.chk{font-size:13px;display:flex;align-items:center;gap:6px}
+    .emerg{background:#c0161c;color:#fff;padding:14px 16px;border-radius:10px}.emerg b{font-size:17px}
+    .reason{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}.close{float:right;cursor:pointer;color:#5c6b78;font-size:15px}
+    #detail{display:none;position:absolute;bottom:78px;right:12px;z-index:5;width:min(340px,94vw);max-height:52vh;overflow:auto;padding:12px 14px}
+    @media(max-width:640px){#crumbs{top:40px;font-size:12px}#panel{top:auto;bottom:78px;left:0;right:0;width:100%;max-height:44vh;border-radius:14px 14px 0 0}#timeline{bottom:26px}#detail{bottom:120px}}
   </style>
 </head>
 <body>
   <div id="banner" role="status" aria-live="polite"></div>
   <div id="map"></div>
-  <div id="disclaimer">⚕ Environmental heat-risk estimate &amp; safety guidance — NOT a medical diagnosis, and it does not replace a healthcare professional.</div>
-
+  <div id="disclaimer">⚕ Environmental heat-risk estimate &amp; safety guidance — NOT a medical diagnosis; it does not replace a healthcare professional.</div>
   <nav id="crumbs" aria-label="Breadcrumb"></nav>
 
   <section id="panel" class="card" aria-label="Context panel">
     <div id="panel-body"></div>
-    <label class="blk" for="date">Forecast date</label>
-    <input type="range" id="date" min="0" max="13" value="2" aria-label="Forecast date offset in days" />
-    <div class="muted" id="dateLabel">—</div>
+    <label class="blk">Data mode</label>
+    <div class="seg" id="modes" role="group" aria-label="Data mode">
+      <button data-m="live" class="active">Live forecast</button>
+      <button data-m="historical">Historical replay</button>
+    </div>
+    <div id="mode-extra"></div>
+    <div id="headline" role="status" aria-live="polite">Loading…</div>
     <label class="blk" for="search">City search</label>
-    <input id="search" placeholder="Type a city (Kyiv, Львів…)" autocomplete="off"
-           role="combobox" aria-expanded="false" aria-autocomplete="list" />
+    <input id="search" placeholder="Type a city (Kyiv, Львів…)" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" />
     <div id="searchResults" class="list" role="listbox" aria-label="City results"></div>
     <label class="blk">Layer</label>
     <div class="seg" id="layers" role="group" aria-label="Hazard layer">
@@ -95,527 +83,428 @@
       <button data-l="nighttime">Tropical night</button>
       <button data-l="heat_index">Heat Index</button>
     </div>
-    <div class="seg">
-      <label class="chk"><input type="checkbox" id="demo"/> synthetic heatwave</label>
-      <label class="chk"><input type="checkbox" id="field"/> continuous field</label>
-    </div>
-    <div class="legend" id="legend" aria-hidden="false"></div>
-    <div id="context-extra"></div>
+    <div id="rank-extra"></div>
+    <div class="legend" id="legend" aria-label="Severity legend"></div>
+    <details><summary>Developer tools</summary>
+      <label class="chk"><input type="checkbox" id="synthetic"/> Synthetic heatwave simulation (not observed/forecast)</label>
+    </details>
     <button class="btn" id="openProfile">Check my personal risk →</button>
     <div class="foot" id="src" aria-live="polite">Loading data status…</div>
   </section>
 
-  <div id="detail" class="card" style="display:none;position:absolute;bottom:34px;right:12px;z-index:3;width:min(340px,94vw);max-height:56vh;overflow:auto;padding:12px 14px"></div>
+  <div id="detail" class="card"></div>
+
+  <div id="timeline" aria-label="Event timeline">
+    <button id="tlbtn" aria-label="Play or pause timeline">▶</button>
+    <div id="tltrack" role="slider" aria-label="Date"></div>
+    <div id="tllabel" class="muted"></div>
+  </div>
+
   <div id="overlay"><div id="sheet" role="dialog" aria-modal="true" aria-label="Personal risk"></div></div>
 
   <script>
   (function(){
     "use strict";
-    const C = window.WAVES_CONFIG || {};
-    const isLocal = location.hostname==="localhost"||location.hostname==="127.0.0.1";
-    const API = isLocal ? (C.API_BASE||"http://127.0.0.1:8010") : "";
-    const today = new Date();
-    const dayISO = (o)=>{const d=new Date(today);d.setDate(d.getDate()+o);return d.toISOString().slice(0,10);};
-    const isoToOffset = (iso)=>{ for(let o=0;o<=13;o++) if(dayISO(o)===iso) return o; return 2; };
+    const C=window.WAVES_CONFIG||{};
+    const isLocal=location.hostname==="localhost"||location.hostname==="127.0.0.1";
+    const API=isLocal?(C.API_BASE||"http://127.0.0.1:8010"):"";
+    const LEVELS=["No heatwave","Heatwave watch","Confirmed heatwave","Severe heatwave","Extreme heatwave"];
+    const COLORS=["#6b8fa8","#f4c430","#e8862e","#a9481c","#c0161c"];
     const KYIV_BBOX=[30.24,50.21,30.83,50.59];
-    const CAT_COLOR={low:"#4a90c2",moderate:"#e0a300",high:"#e2681c",critical:"#c0281c",unknown:"#9aa7b1"};
-    const CAT_SYM={low:"L",moderate:"M",high:"H",critical:"C"};  // text, not colour-only
-    const ZOOM_IN=8.3, ZOOM_OUT=7.2;                             // hysteresis
 
-    // ---------- single authoritative state ----------
-    const S = { level:"national", city:null, region:null,
-                date:dayISO(2), layer:"hazard", scenario:"live" };
-    const isDemo = ()=> S.scenario==="heatwave";
+    const S={level:"national",city:null,region:null,date:null,layer:"hazard",mode:"live",event:null};
+    let cityRegistry={}, availableDates=[], summaryData=null, footprintData=null, playing=false, playTimer=null;
+    let historicalEvents=[], defaultEvent=null;
+    const boundaryCache={}, riskCache={}, fpCache={};
+    let fpAbort=null, riskAbort=null, natMarkers=[];
 
-    // client caches
-    let cityRegistry = {};                 // from /api/cities-available
-    const boundaryCache = {};              // cityId -> {geojson,bbox,meta}
-    const riskCache = {};                  // key -> regions
-    let riskAbort = null, natAbort = null;
-
-    // map
-    const style = C.MAPTILER_KEY
-      ? `https://api.maptiler.com/maps/dataviz/style.json?key=${C.MAPTILER_KEY}`
-      : {version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#dfe7ef"}}]};
-    const map = new maplibregl.Map({container:"map",style,center:[31.2,48.8],zoom:5});
+    // ---- map ----
+    const style=C.MAPTILER_KEY?`https://api.maptiler.com/maps/dataviz/style.json?key=${C.MAPTILER_KEY}`
+      :{version:8,sources:{},layers:[{id:"bg",type:"background",paint:{"background-color":"#dfe7ef"}}]};
+    const map=new maplibregl.Map({container:"map",style,center:[31.2,48.8],zoom:5});
     map.addControl(new maplibregl.NavigationControl(),"top-right");
-    map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:
-      "Forecast © Open-Meteo · Boundaries © OSM (ODbL)/geoBoundaries · Climatology: ERA5-Land"}));
-    let programmaticMove=false, mapReady=false, natMarkers=[];
+    map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:"Forecast © Open-Meteo · Climatology ERA5-Land · Boundaries © OSM(ODbL)/geoBoundaries"}));
+    let mapReady=false, programmaticMove=false;
 
-    // =========================================================
-    //  URL <-> state
-    // =========================================================
-    function writeURL(push){
-      const q=new URLSearchParams();
-      if(S.city)q.set("city",S.city);
-      if(S.region)q.set("region",S.region);
-      q.set("date",S.date); q.set("layer",S.layer);
-      if(S.scenario!=="live")q.set("scenario",S.scenario);
-      const url="?"+q.toString();
-      if(push) history.pushState({...S},"",url); else history.replaceState({...S},"",url);
-    }
-    function readURL(){
-      const q=new URLSearchParams(location.search);
-      S.city=q.get("city")||null;
-      S.region=q.get("region")||null;
-      S.date=q.get("date")||dayISO(2);
-      S.layer=q.get("layer")||"hazard";
-      S.scenario=q.get("scenario")==="heatwave"?"heatwave":"live";
-      S.level = S.region?"district":(S.city?"city":"national");
-    }
+    // ---- URL ----
+    function writeURL(push){const q=new URLSearchParams();
+      if(S.city)q.set("city",S.city); if(S.region)q.set("region",S.region);
+      if(S.date)q.set("date",S.date); q.set("layer",S.layer); if(S.mode!=="live")q.set("mode",S.mode);
+      if(S.event)q.set("event",S.event);
+      const u="?"+q.toString(); push?history.pushState({...S},"",u):history.replaceState({...S},"",u);}
+    function readURL(){const q=new URLSearchParams(location.search);
+      S.city=q.get("city")||null; S.region=q.get("region")||null; S.date=q.get("date")||null;
+      S.layer=q.get("layer")||"hazard"; const m=q.get("mode"); S.mode=["historical","synthetic"].includes(m)?m:"live";
+      S.event=q.get("event")||null; S.level=S.region?"district":(S.city?"city":"national");}
 
-    // =========================================================
-    //  data status banner
-    // =========================================================
+    // ---- helpers ----
+    const modeParam=()=>S.mode;   // live|historical|synthetic
+    function lvpill(l){return `<span class="lvpill" style="background:${COLORS[l]}">Level ${l} · ${LEVELS[l]}</span>`;}
+    async function jget(url,signal){const r=await fetch(url,signal?{signal}:undefined); if(!r.ok)throw new Error(r.status); return r.json();}
+
+    // =============== data status / banner ===============
     async function loadStatus(){
-      try{
-        const d=await (await fetch(`${API}/api/data-status`)).json();
-        const c=d.providers.climatology_era5_land.detail;
-        document.getElementById("src").textContent =
-          `Climatology ERA5-Land ${c.baseline_status} ${JSON.stringify(c.baseline_years)} · Forecast Open-Meteo · not a medical device`;
+      try{const d=await jget(`${API}/api/data-status`); const c=d.providers.climatology_era5_land.detail;
         window.__baseline=c;
-      }catch(e){ document.getElementById("src").textContent="Backend unreachable"; }
+        document.getElementById("src").textContent=`Climatology ERA5-Land ${c.baseline_status} · ${c.baseline_year_count||"?"} of ${c.expected_year_count||30} years · Forecast Open-Meteo · not a medical device`;
+      }catch(e){document.getElementById("src").textContent="Backend unreachable";}
       renderBanner();
     }
-    function renderBanner(){
-      const b=document.getElementById("banner"), c=window.__baseline;
-      if(isDemo()){ b.className="synthetic";
-        b.textContent="🧪 SYNTHETIC heatwave scenario — demonstration data, NOT a live forecast."; return; }
-      if(c&&c.baseline_status==="complete"){ b.className="complete";
-        b.textContent=`✓ Climatology baseline COMPLETE (${c.expected_baseline}). Forecast: Open-Meteo.`; }
-      else { b.className="";
-        b.textContent=`⚠ PROVISIONAL climatology — baseline ${c?JSON.stringify(c.baseline_years):"[2020]"} (sanity check only; full 1991-2020 downloading). Thresholds not final.`; }
+    function renderBanner(){const b=document.getElementById("banner"),c=window.__baseline;
+      if(S.mode==="synthetic"){b.className="synthetic";b.textContent="🧪 SYNTHETIC simulation — artificial demonstration data, NOT observed or forecast conditions.";return;}
+      if(S.mode==="historical"){b.className="historical";b.textContent="🕓 HISTORICAL replay — observed conditions from ERA5-Land reanalysis"+(S.event?` · ${S.event}`:"");return;}
+      if(c&&c.baseline_status==="complete"){b.className="complete";b.textContent="✓ Climatology baseline COMPLETE (1991–2020). Live Open-Meteo forecast.";}
+      else{b.className="";const ys=c?c.baseline_years:[2020];b.textContent=`⚠ Provisional climatology: ${c?c.baseline_year_count:1} of ${c?c.expected_year_count:30} years available (${JSON.stringify(ys)}). Results will update as the baseline completes.`;}
     }
 
-    // =========================================================
-    //  NATIONAL layer (markers + optional continuous field)
-    // =========================================================
-    async function ensureOblasts(){
-      if(map.getSource("oblast-boundaries"))return;
-      try{
-        const gj=await (await fetch("/data/boundaries/ukraine_oblasts.geojson")).json();
+    // =============== national footprint + summary ===============
+    async function ensureOblasts(){if(map.getSource("oblast-boundaries"))return;
+      try{const gj=await jget("/data/boundaries/ukraine_oblasts.geojson");
         map.addSource("oblast-boundaries",{type:"geojson",data:gj});
-        map.addLayer({id:"oblast-fill",type:"fill",source:"oblast-boundaries",paint:{"fill-color":"#8aa0b2","fill-opacity":0.05}});
-        map.addLayer({id:"oblast-line",type:"line",source:"oblast-boundaries",paint:{"line-color":"#8aa0b2","line-width":0.8}});
-      }catch(e){}
+        map.addLayer({id:"oblast-line",type:"line",source:"oblast-boundaries",paint:{"line-color":"#8aa0b2","line-width":0.8,"line-opacity":0.7}});
+      }catch(e){}}
+    function fpColorExpr(){
+      if(S.layer==="hazard") return ["match",["get","severity_level"],0,COLORS[0],1,COLORS[1],2,COLORS[2],3,COLORS[3],4,COLORS[4],"#9aa7b1"];
+      if(S.layer==="nighttime") return ["case",["==",["get","tropical_night"],true],"#c0161c","#6b8fa8"];
+      if(S.layer==="heat_index") return ["step",["coalesce",["get","tx95_exceedance"],-99],"#6b8fa8",0,"#f4c430",2,"#e8862e",4,"#c0161c"];
+      const key=S.layer==="tx90_exceedance"?"tx90_exceedance":"tx95_exceedance";
+      return ["step",["coalesce",["get",key],-99],"#6b8fa8",0,"#f4c430",2,"#e8862e",4,"#c0161c"];
     }
-    function natLayer(){ return S.layer==="hazard"?"tx95_exceedance":S.layer; }
-    function natColor(p){
-      if(p.value==null)return "#9aa7b1";
-      if(S.layer==="nighttime")return p.value>=1?"#c0281c":"#4a90c2";
-      if(S.layer==="heat_index"){const v=p.value;return v>=41?"#c0281c":v>=32?"#e2681c":v>=27?"#e0a300":"#4a90c2";}
-      const v=p.value;return v>=4?"#c0281c":v>=2?"#e2681c":v>=0?"#e0a300":"#4a90c2";
-    }
-    async function loadNational(){
+    function fpOpacity(){ return S.layer==="hazard"?["match",["get","severity_level"],0,0.12,0.6]:0.5; }
+    async function loadNational({refit=false}={}){
       await ensureOblasts();
-      if(natAbort)natAbort.abort(); natAbort=new AbortController();
-      let d;
-      try{ d=await (await fetch(`${API}/api/risk-map?on=${S.date}&layer=${natLayer()}&scenario=${isDemo()?"heatwave":""}`,{signal:natAbort.signal})).json(); }
-      catch(e){ return; }
-      natMarkers.forEach(m=>m.remove()); natMarkers=[];
-      d.points.filter(p=>!p.error).forEach(p=>{
-        const el=document.createElement("div");
-        el.style.cssText=`width:15px;height:15px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);background:${natColor(p)};cursor:pointer`;
-        el.title=p.name_en; el.setAttribute("aria-label",p.name_en);
-        el.onclick=()=>{ if(cityRegistry[p.city]&&cityRegistry[p.city].has_regions){ userActivateCity(p.city); } else { flyTo(p.lat,p.lon,9); clickLocation(p.lat,p.lon,p.name_en); } };
-        natMarkers.push(new maplibregl.Marker({element:el}).setLngLat([p.lon,p.lat]).addTo(map));
-      });
-      window.__natRank=d.points.filter(p=>!p.error);
-      await loadField();
-    }
-    async function loadField(){
-      const want=document.getElementById("field").checked && S.level==="national";
-      const ids=["national-forecast-grid-fill","national-forecast-grid-line"];
-      if(!want){ ids.forEach(i=>{if(map.getLayer(i))map.removeLayer(i)}); if(map.getSource("national-forecast-grid"))map.removeSource("national-forecast-grid"); return; }
-      let gj; try{ gj=await (await fetch(`${API}/api/forecast-grid?on=${S.date}&layer=${natLayer()}&spacing=1.0`)).json(); }catch(e){ return; }
-      if(map.getSource("national-forecast-grid"))map.getSource("national-forecast-grid").setData(gj);
-      else{
-        map.addSource("national-forecast-grid",{type:"geojson",data:gj});
-        const color=S.layer==="nighttime"?["case",[">=",["get","value"],1],"#c0281c","#4a90c2"]
-          :["step",["coalesce",["get","value"],-99],"#9aa7b1",0,"#e0a300",2,"#e2681c",4,"#c0281c"];
-        const before=map.getLayer("oblast-line")?"oblast-line":undefined;
-        map.addLayer({id:"national-forecast-grid-fill",type:"fill",source:"national-forecast-grid",paint:{"fill-color":color,"fill-opacity":0.4}},before);
-        map.addLayer({id:"national-forecast-grid-line",type:"line",source:"national-forecast-grid",paint:{"line-color":"#fff","line-width":0.3,"line-opacity":0.35}},before);
+      const ev=S.mode==="historical"?`&event_id=${S.event||""}`:"";
+      // summary (headline, counts, available_dates)
+      try{ summaryData=await jget(`${API}/api/heatwave-summary?date=${S.date}&mode=${modeParam()}${ev}`);
+        availableDates=summaryData.available_dates||[]; }catch(e){ summaryData=null; }
+      // footprint
+      const fkey=`${modeParam()}|${S.date}|${S.event||""}`;
+      if(fpAbort)fpAbort.abort(); fpAbort=new AbortController();
+      try{ footprintData = fpCache[fkey] || await jget(`${API}/api/heatwave-footprint?date=${S.date}&mode=${modeParam()}${ev}`,fpAbort.signal); fpCache[fkey]=footprintData; }
+      catch(e){ if(e.name==="AbortError")return; footprintData=null; }
+      if(footprintData){
+        if(map.getSource("national-forecast-grid"))map.getSource("national-forecast-grid").setData(footprintData);
+        else{ map.addSource("national-forecast-grid",{type:"geojson",data:footprintData});
+          map.addLayer({id:"nfg-fill",type:"fill",source:"national-forecast-grid",paint:{"fill-color":fpColorExpr(),"fill-opacity":fpOpacity(),"fill-opacity-transition":{duration:300}}}, map.getLayer("oblast-line")?"oblast-line":undefined);
+          map.addLayer({id:"nfg-line",type:"line",source:"national-forecast-grid",paint:{"line-color":"#fff","line-width":0.2,"line-opacity":0.25}}, map.getLayer("oblast-line")?"oblast-line":undefined);
+          map.on("click","nfg-fill",(e)=>cellPopup(e.features[0].properties,e.lngLat));
+          map.on("mouseenter","nfg-fill",()=>map.getCanvas().style.cursor="pointer");
+          map.on("mouseleave","nfg-fill",()=>map.getCanvas().style.cursor="");
+        }
+        map.setPaintProperty("nfg-fill","fill-color",fpColorExpr());
+        map.setPaintProperty("nfg-fill","fill-opacity",fpOpacity());
       }
+      await loadCityMarkers();
+      renderTimeline();
+      renderPanel();
     }
-    function setNationalVisible(v){
-      natMarkers.forEach(m=>{ m.getElement().style.display = v?"":"none"; });
-      // dim national grid under districts
-      if(map.getLayer("national-forecast-grid-fill"))
-        map.setPaintProperty("national-forecast-grid-fill","fill-opacity", v?0.4:0.12);
-    }
-
-    // =========================================================
-    //  GENERIC CITY layer (Kyiv first)
-    // =========================================================
-    async function loadCityRegions(cityId){
-      if(boundaryCache[cityId]) return boundaryCache[cityId];
-      const reg=await (await fetch(`${API}/api/city-regions?city=${cityId}`)).json();
-      if(reg.detail) throw new Error(reg.detail);
-      boundaryCache[cityId]={geojson:reg.geojson,bbox:reg.bbox,meta:reg,resolution:reg.resolution_note};
-      return boundaryCache[cityId];
-    }
-    async function loadCityRisk(cityId,date,layer,scenario){
-      const key=`${cityId}|${date}|${layer}|${scenario}|${(window.__baseline||{}).baseline_status}`;
-      if(riskCache[key]) return riskCache[key];
+    async function loadCityMarkers(){
+      if(S.mode==="historical"){ natMarkers.forEach(m=>m.remove()); natMarkers=[]; window.__natRank=[]; return; }
       if(riskAbort)riskAbort.abort(); riskAbort=new AbortController();
-      const d=await (await fetch(`${API}/api/city-risk-map?city=${cityId}&date=${date}&layer=${layer==="hazard"?"hazard":layer}&scenario=${scenario==="heatwave"?"heatwave":""}`,{signal:riskAbort.signal})).json();
-      riskCache[key]=d.regions; window.__cityMeta=d; return d.regions;
+      let d; try{ d=await jget(`${API}/api/risk-map?on=${S.date}&layer=tx95_exceedance&scenario=${S.mode==="synthetic"?"heatwave":""}`,riskAbort.signal);}catch(e){return;}
+      natMarkers.forEach(m=>m.remove()); natMarkers=[];
+      d.points.filter(p=>!p.error).forEach(p=>{const el=document.createElement("div");
+        el.style.cssText=`width:13px;height:13px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);background:${COLORS[p.severity_level||0]};cursor:pointer`;
+        el.title=`${p.name_en}: ${p.severity_label}`; el.setAttribute("aria-label",`${p.name_en}, ${p.severity_label}`);
+        el.onclick=()=>{ if(cityRegistry[p.city]&&cityRegistry[p.city].has_regions)userActivateCity(p.city); else {flyTo(p.lat,p.lon,9);cellPopupCity(p);} };
+        natMarkers.push(new maplibregl.Marker({element:el}).setLngLat([p.lon,p.lat]).addTo(map));});
+      window.__natRank=d.points.filter(p=>!p.error);
+      if(S.level==="national")renderPanel();
     }
-    function cityColor(r){
-      if(!r||r.error)return "#9aa7b1";
-      if(S.layer==="hazard")return CAT_COLOR[r.category]||"#9aa7b1";
-      if(S.layer==="nighttime")return r.tropical_night?"#c0281c":"#4a90c2";
-      if(S.layer==="heat_index"){const v=r.heat_index_max;return v==null?"#9aa7b1":v>=41?"#c0281c":v>=32?"#e2681c":v>=27?"#e0a300":"#4a90c2";}
-      const v=S.layer==="tx90_exceedance"?r.tmax_minus_tx90:r.tmax_minus_tx95;
-      return v==null?"#9aa7b1":v>=4?"#c0281c":v>=2?"#e2681c":v>=0?"#e0a300":"#4a90c2";
-    }
-    async function ensureCityLayers(cityId){
-      const b=await loadCityRegions(cityId);
+    function setNationalMarkersVisible(v){natMarkers.forEach(m=>m.getElement().style.display=v?"":"none");
+      if(map.getLayer("nfg-fill"))map.setPaintProperty("nfg-fill","fill-opacity", v?fpOpacity():0.12);}
+
+    // =============== city / district ===============
+    async function loadCityRegions(id){ if(boundaryCache[id])return boundaryCache[id];
+      const r=await jget(`${API}/api/city-regions?city=${id}`); if(r.detail)throw new Error(r.detail);
+      boundaryCache[id]={geojson:r.geojson,bbox:r.bbox,meta:r,resolution:r.resolution_note}; return boundaryCache[id];}
+    async function loadCityRisk(id){ const key=`${id}|${S.date}|${modeParam()}|${(window.__baseline||{}).baseline_status}`;
+      if(riskCache[key])return riskCache[key];
+      const d=await jget(`${API}/api/city-risk-map?city=${id}&date=${S.date}&layer=hazard&scenario=${S.mode==="synthetic"?"heatwave":""}`);
+      riskCache[key]=d.regions; window.__cityMeta=d; return d.regions;}
+    async function ensureCityLayers(id){ const b=await loadCityRegions(id);
       if(!map.getSource("kyiv-district-boundaries")){
         map.addSource("kyiv-district-boundaries",{type:"geojson",data:b.geojson});
-        map.addLayer({id:"kyiv-district-risk",type:"fill",source:"kyiv-district-boundaries",
-          paint:{"fill-color":"#9aa7b1","fill-opacity":0,"fill-opacity-transition":{duration:400}}});
-        map.addLayer({id:"kyiv-district-line",type:"line",source:"kyiv-district-boundaries",
-          paint:{"line-color":"#ffffff","line-width":1.1,"line-opacity":0,"line-opacity-transition":{duration:400}}});
-        map.addLayer({id:"selected-region-highlight",type:"line",source:"kyiv-district-boundaries",
-          paint:{"line-color":"#111","line-width":3,"line-opacity":0},
-          filter:["==",["get","id"],"__none__"]});
+        map.addLayer({id:"kyiv-district-risk",type:"fill",source:"kyiv-district-boundaries",paint:{"fill-color":"#9aa7b1","fill-opacity":0,"fill-opacity-transition":{duration:400}}});
+        map.addLayer({id:"kyiv-district-line",type:"line",source:"kyiv-district-boundaries",paint:{"line-color":"#111","line-width":1.2,"line-opacity":0,"line-opacity-transition":{duration:400}}});
+        map.addLayer({id:"selected-region-highlight",type:"line",source:"kyiv-district-boundaries",paint:{"line-color":"#000","line-width":3,"line-opacity":0},filter:["==",["get","id"],"__none__"]});
         map.on("click","kyiv-district-risk",(e)=>userSelectRegion(e.features[0].properties.id));
         map.on("mouseenter","kyiv-district-risk",()=>map.getCanvas().style.cursor="pointer");
         map.on("mouseleave","kyiv-district-risk",()=>map.getCanvas().style.cursor="");
-      } else { map.getSource("kyiv-district-boundaries").setData(b.geojson); }
-      return b;
-    }
-    async function renderCity(cityId,{fit}){
-      let b; try{ b=await ensureCityLayers(cityId); }catch(e){ deactivateCity(); toast("District detail unavailable."); return; }
-      let regions; try{ regions=await loadCityRisk(cityId,S.date,S.layer,S.scenario); }catch(e){ if(e.name==="AbortError")return; regions=[]; }
+      } else map.getSource("kyiv-district-boundaries").setData(b.geojson);
+      return b;}
+    async function renderCity(id,{fit}){
+      let b; try{b=await ensureCityLayers(id);}catch(e){deactivateCity();return;}
+      let regions; try{regions=await loadCityRisk(id);}catch(e){if(e.name==="AbortError")return;regions=[];}
       window.__regions=regions;
-      const expr=["match",["get","id"]]; regions.forEach(r=>expr.push(r.id,cityColor(r))); expr.push("#9aa7b1");
+      const expr=["match",["get","id"]]; regions.forEach(r=>expr.push(r.id, r.error?"#9aa7b1":COLORS[r.severity_level||0])); expr.push("#9aa7b1");
       map.setPaintProperty("kyiv-district-risk","fill-color",expr);
-      map.setPaintProperty("kyiv-district-risk","fill-opacity",0.62);
+      map.setPaintProperty("kyiv-district-risk","fill-opacity",0.55);
       map.setPaintProperty("kyiv-district-line","line-opacity",0.9);
-      setNationalVisible(false);
-      if(fit && b.bbox){ programmaticMove=true;
-        map.fitBounds([[b.bbox[0],b.bbox[1]],[b.bbox[2],b.bbox[3]]],{padding:50,duration:800}); }
-      renderPanel();
+      setNationalMarkersVisible(false);              // keep national grid beneath at low opacity
+      if(fit&&b.bbox){programmaticMove=true;map.fitBounds([[b.bbox[0],b.bbox[1]],[b.bbox[2],b.bbox[3]]],{padding:50,duration:800});}
+      renderPanel(); if(S.region)highlightRegion(S.region);
     }
-    function deactivateCity(){
-      ["kyiv-district-risk","kyiv-district-line","selected-region-highlight"].forEach(i=>{
-        if(map.getLayer(i)){ if(i!=="selected-region-highlight")map.setPaintProperty(i, i.endsWith("risk")?"fill-opacity":"line-opacity",0); }});
-      setNationalVisible(true);
-      loadField();
-    }
+    function deactivateCity(){["kyiv-district-risk","kyiv-district-line"].forEach(i=>{if(map.getLayer(i))map.setPaintProperty(i,i.endsWith("risk")?"fill-opacity":"line-opacity",0);});
+      if(map.getLayer("selected-region-highlight"))map.setPaintProperty("selected-region-highlight","line-opacity",0);
+      setNationalMarkersVisible(true);}
+    function highlightRegion(id){if(map.getLayer("selected-region-highlight")){map.setFilter("selected-region-highlight",["==",["get","id"],id||"__none__"]);map.setPaintProperty("selected-region-highlight","line-opacity",id?1:0);}}
 
-    // =========================================================
-    //  central transition + render
-    // =========================================================
-    function setState(patch,{push=false,fit=false}={}){
-      Object.assign(S,patch);
-      S.level = S.region?"district":(S.city?"city":"national");
-      writeURL(push);
-      apply({fit});
-    }
+    // =============== state machine ===============
+    function setState(patch,{push=false,fit=false}={}){Object.assign(S,patch);
+      S.level=S.region?"district":(S.city?"city":"national"); writeURL(push); apply({fit});}
     async function apply({fit=false}={}){
-      // sync controls
-      document.getElementById("date").value=isoToOffset(S.date);
-      document.getElementById("dateLabel").textContent=S.date+(isDemo()?"  (SYNTHETIC heatwave)":"");
-      document.getElementById("demo").checked=isDemo();
+      if(!S.date)S.date=(availableDates[0]||new Date().toISOString().slice(0,10));
+      document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("active",x.dataset.m===S.mode));
       document.querySelectorAll("#layers button").forEach(x=>x.classList.toggle("active",x.dataset.l===S.layer));
-      renderBanner(); renderCrumbs();
-      if(S.city && cityRegistry[S.city] && cityRegistry[S.city].has_regions){
-        await loadNationalRankOnly();      // keep national rank data warm but don't show markers
-        await renderCity(S.city,{fit});
-        if(S.region) highlightRegion(S.region);
-      } else {
-        // national (or city without regions)
-        deactivateCity();
-        await loadNational();
-        if(S.city && cityRegistry[S.city] && !cityRegistry[S.city].has_regions){
-          const c=cityRegistry[S.city]; if(fit){flyTo(c.center[0],c.center[1],9);}
-        }
-        renderPanel();
-      }
-    }
-    async function loadNationalRankOnly(){
-      if(window.__natRank)return;
-      try{ const d=await (await fetch(`${API}/api/risk-map?on=${S.date}&layer=tx95_exceedance&scenario=${isDemo()?"heatwave":""}`)).json();
-        window.__natRank=d.points.filter(p=>!p.error);}catch(e){}
+      document.getElementById("synthetic").checked=(S.mode==="synthetic");
+      renderBanner(); renderCrumbs(); renderModeExtra();
+      await loadNational({});
+      if(S.city&&cityRegistry[S.city]&&cityRegistry[S.city].has_regions){ await renderCity(S.city,{fit}); }
+      else { deactivateCity(); if(S.city&&fit){const c=cityRegistry[S.city];if(c)flyTo(c.center[0],c.center[1],9);} renderPanel(); }
     }
 
-    function highlightRegion(id){
-      if(map.getLayer("selected-region-highlight")){
-        map.setFilter("selected-region-highlight",["==",["get","id"],id||"__none__"]);
-        map.setPaintProperty("selected-region-highlight","line-opacity",id?1:0);
-      }
-    }
-
-    // =========================================================
-    //  breadcrumbs
-    // =========================================================
-    function regionName(id){ const r=(window.__regions||[]).find(x=>x.id===id); return r?(r.name_en||r.name):id; }
-    function renderCrumbs(){
-      const el=document.getElementById("crumbs"); el.innerHTML="";
-      const add=(label,fn,cur)=>{ if(cur){const s=document.createElement("span");s.className="cur";s.textContent=label;el.appendChild(s);}
-        else{const a=document.createElement("a");a.textContent=label;a.tabIndex=0;a.setAttribute("role","link");
-          a.onclick=fn;a.onkeydown=(e)=>{if(e.key==="Enter")fn();};el.appendChild(a);} };
+    // =============== panel / ranking ===============
+    function renderCrumbs(){const el=document.getElementById("crumbs");el.innerHTML="";
+      const add=(t,fn,cur)=>{if(cur){const s=document.createElement("span");s.className="cur";s.textContent=t;el.appendChild(s);}else{const a=document.createElement("a");a.textContent=t;a.tabIndex=0;a.onclick=fn;a.onkeydown=e=>{if(e.key==="Enter")fn();};el.appendChild(a);}};
       const sep=()=>{const s=document.createElement("span");s.className="sep";s.textContent="/";el.appendChild(s);};
       add("Ukraine",()=>goNational(),S.level==="national");
-      if(S.city){ sep(); const cityCur=S.level==="city";
-        add(cityRegistry[S.city]?cityRegistry[S.city].name_en:S.city,()=>setState({region:null},{push:true,fit:true}),cityCur); }
-      if(S.region){ sep(); add(regionName(S.region),()=>{},true); }
+      if(S.city){sep();add(cityRegistry[S.city]?cityRegistry[S.city].name_en:S.city,()=>setState({region:null},{push:true,fit:true}),S.level==="city");}
+      if(S.region){sep();add(regionName(S.region),()=>{},true);}
     }
-
-    // =========================================================
-    //  context-aware panel
-    // =========================================================
+    function regionName(id){const r=(window.__regions||[]).find(x=>x.id===id);return r?(r.name_en||r.name):id;}
+    function renderModeExtra(){const el=document.getElementById("mode-extra");
+      if(S.mode!=="historical"){el.innerHTML="";return;}
+      const opts=historicalEvents.slice(0,20).map(e=>`<option value="${e.event_id}" ${e.event_id===S.event?"selected":""}>${e.start_date} → ${e.end_date} · L${e.maximum_severity_level} · ${e.duration_days}d · ${e.maximum_temperature}°C</option>`).join("");
+      el.innerHTML=`<label class="blk">Observed event (ERA5-Land)</label><select id="evsel" style="width:100%">${opts}</select>`;
+      const sel=document.getElementById("evsel"); if(sel)sel.onchange=()=>selectEvent(sel.value);
+    }
     function renderPanel(){
-      const body=document.getElementById("panel-body"), extra=document.getElementById("context-extra");
+      const body=document.getElementById("panel-body"), rank=document.getElementById("rank-extra"), hl=document.getElementById("headline");
       renderLegend();
+      // headline (no-event / watch / confirmed)
+      if(summaryData){ const st=summaryData.status;
+        hl.style.background = st==="no_event"?"#e8f0f4":st==="watch"?"#fbf2d6":"#f6ddd6";
+        hl.innerHTML=`<b>${summaryData.headline}</b>`+
+          `<span class="muted">Levels — watch ${summaryData.counts_by_level?.["1"]||0}, confirmed ${summaryData.counts_by_level?.["2"]||0}, severe ${summaryData.counts_by_level?.["3"]||0}, extreme ${summaryData.counts_by_level?.["4"]||0}</span>`;
+      } else hl.textContent="Forecast data could not be loaded.";
       if(S.level==="national"){
-        body.innerHTML=`<h1>Ukraine heat hazard</h1><div class="muted">Meteorological hazard — not health outcome.</div>`;
-        const rank=(window.__natRank||[]).slice().sort((a,b)=>((b.value??-99)-(a.value??-99))).slice(0,8);
-        extra.innerHTML=`<label class="blk">Highest hazard on ${S.date}</label><div class="list" id="ranklist"></div>`;
-        fillRank(rank.map(p=>({name:p.name_en,val:p.value,band:bandOf(p),lat:p.lat,lon:p.lon,city:p.city})),
-                 (it)=>{ if(cityRegistry[it.city]&&cityRegistry[it.city].has_regions)userActivateCity(it.city); else {flyTo(it.lat,it.lon,9);clickLocation(it.lat,it.lon,it.name);} });
+        body.innerHTML=`<h1>Ukraine heatwave hazard</h1><div class="muted">${S.mode==="live"?"Live Open-Meteo forecast":S.mode==="historical"?"Observed ERA5-Land replay":"Synthetic simulation"} · event footprint, not raw temperature.</div>`;
+        const r=(window.__natRank||[]).slice().sort(rankCmp).slice(0,8);
+        if(S.mode==="historical"){ rank.innerHTML=`<div class="muted" style="margin-top:8px">Observed footprint for ${S.date}. Use the timeline to replay the event.</div>`; }
+        else { rank.innerHTML=`<label class="blk">${(window.__natRank||[]).some(p=>p.severity_level>=2)?"Highest hazard":"Heatwave watch"} on ${S.date}</label><div class="list" id="ranklist"></div>`;
+          fillRank(r,(p)=>{if(cityRegistry[p.city]&&cityRegistry[p.city].has_regions)userActivateCity(p.city);else{flyTo(p.lat,p.lon,9);cellPopupCity(p);}}); }
       } else {
-        const meta=window.__cityMeta||{}; const cn=cityRegistry[S.city]?cityRegistry[S.city].name_en:S.city;
-        body.innerHTML=`<h1>${cn}</h1><div class="muted">City districts · ${meta.total_cells_sampled||0} forecast cells sampled</div>
-          <div class="warnrow">${(meta.resolution_note)||"District-level estimated heat distribution. Forecast resolution does not represent street-level temperature."}</div>`;
-        const regs=(window.__regions||[]).filter(r=>!r.error);
-        extra.innerHTML=`<details id="ranklist-wrap" open><summary>District ranking (${regs.length})</summary><div class="list" id="ranklist"></div></details>`;
-        const ord={low:0,moderate:1,high:2,critical:3};
-        const key=(r)=>S.layer==="hazard"?ord[r.category]:S.layer==="heat_index"?(r.heat_index_max??-99):S.layer==="nighttime"?(r.tropical_night?1:0):S.layer==="tx90_exceedance"?(r.tmax_minus_tx90??-99):(r.tmax_minus_tx95??-99);
-        const s=regs.slice().sort((a,b)=>key(b)-key(a));
-        fillRank(s.map(r=>({id:r.id,name:r.name_en||r.name,band:r.category,
-          val:S.layer==="hazard"?r.category:S.layer==="nighttime"?(r.tropical_night?"yes":"no"):S.layer==="heat_index"?r.heat_index_max:(S.layer==="tx90_exceedance"?r.tmax_minus_tx90:r.tmax_minus_tx95)})),
-          (it)=>userSelectRegion(it.id));
-        if(S.region) showDistrict(S.region);
+        const meta=window.__cityMeta||{}, cn=cityRegistry[S.city]?cityRegistry[S.city].name_en:S.city;
+        body.innerHTML=`<h1>${cn}</h1><div class="muted">Districts · ${meta.total_cells_sampled||0} forecast cells sampled</div><div class="warnrow">${meta.resolution_note||"District-level estimated heat distribution. Forecast resolution does not represent street-level temperature."}</div>`;
+        const regs=(window.__regions||[]).filter(r=>!r.error).slice().sort((a,b)=>(b.severity_level-a.severity_level)||((b.tmax_minus_tx95??-99)-(a.tmax_minus_tx95??-99)));
+        rank.innerHTML=`<details open><summary>District ranking (${regs.length})</summary><div class="list" id="ranklist"></div></details>`;
+        fillRankDistricts(regs);
+        if(S.region)showDistrict(S.region);
       }
-      // profile CTA label
-      document.getElementById("openProfile").textContent =
-        S.region?`Check personal risk in ${regionName(S.region)} →`:"Check my personal risk →";
+      document.getElementById("openProfile").textContent=S.region?`Check personal risk in ${regionName(S.region)} →`:"Check my personal risk →";
     }
-    function fillRank(items,onClick){
-      const box=document.getElementById("ranklist"); if(!box)return; box.innerHTML="";
-      items.forEach(it=>{ const row=document.createElement("div"); row.className="row"+(it.id&&it.id===S.region?" sel":"");
-        row.tabIndex=0; row.setAttribute("role","button"); row.setAttribute("aria-label",`${it.name}, ${it.band||""}`);
-        const band=it.band||"low";
-        row.innerHTML=`<span>${it.name}</span><span><b>${it.val==null?"n/a":it.val}</b> <span class="pill ${band}"><span class="sym">${CAT_SYM[band]||"?"}</span>${band}</span></span>`;
-        row.onclick=()=>onClick(it); row.onkeydown=(e)=>{if(e.key==="Enter")onClick(it);};
-        box.appendChild(row); });
-    }
-    function bandOf(p){ if(S.layer==="nighttime")return p.value>=1?"high":"low"; const v=p.value; if(v==null)return"low"; return v>=4?"critical":v>=2?"high":v>=0?"moderate":"low"; }
-    function renderLegend(){
-      const L=document.getElementById("legend"); const seg=(c,t)=>`<span><i style="background:${c}"></i>${t}</span>`;
-      if(S.layer==="hazard"){L.innerHTML=seg("#4a90c2","L low")+seg("#e0a300","M moderate")+seg("#e2681c","H high")+seg("#c0281c","C critical");return;}
-      if(S.layer==="nighttime"){L.innerHTML=seg("#c0281c","tropical night")+seg("#4a90c2","no");return;}
-      if(S.layer==="heat_index"){L.innerHTML=seg("#4a90c2","<27")+seg("#e0a300","27–32")+seg("#e2681c","32–41")+seg("#c0281c","≥41 °C");return;}
-      L.innerHTML=seg("#4a90c2","below")+seg("#e0a300","0–2")+seg("#e2681c","2–4")+seg("#c0281c","≥4 °C over");
-    }
-    function showDistrict(id){
-      const r=(window.__regions||[]).find(x=>x.id===id); if(!r)return; highlightRegion(id);
-      const box=document.getElementById("detail"); box.style.display="block";
-      if(r.error){box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span><b>${r.name_en}</b><div class="muted">forecast unavailable</div>`;return;}
-      const oneCell = r.n_cells<=1;
+    function rankCmp(a,b){ return (b.severity_level-a.severity_level)||(b.tx95_run-a.tx95_run)||((b.value??-99)-(a.value??-99))||((b.consecutive_tropical_nights||0)-(a.consecutive_tropical_nights||0)); }
+    function fillRank(items,onClick){const box=document.getElementById("ranklist");if(!box)return;box.innerHTML="";
+      items.forEach(p=>{const row=document.createElement("div");row.className="row";row.tabIndex=0;row.setAttribute("role","button");
+        const l=p.severity_level||0; const day=l>=2?`Day ${p.tx90_run}`:l===1?"Watch":"—";
+        const exc=p.value!=null?`Max ${p.value>0?"+":""}${p.value}°C vs TX95`:"";
+        const tn=p.consecutive_tropical_nights?` · ${p.consecutive_tropical_nights} tropical night(s)`:"";
+        row.setAttribute("aria-label",`${p.name_en}, Level ${l} ${LEVELS[l]}`);
+        row.innerHTML=`<div><div>${p.name_en}</div><div class="sub">${day}${exc?" · "+exc:""}${tn}</div></div>${lvpill(l)}`;
+        row.onclick=()=>onClick(p);row.onkeydown=e=>{if(e.key==="Enter")onClick(p);};box.appendChild(row);});}
+    function fillRankDistricts(regs){const box=document.getElementById("ranklist");if(!box)return;box.innerHTML="";
+      regs.forEach(r=>{const row=document.createElement("div");row.className="row"+(r.id===S.region?" sel":"");row.tabIndex=0;row.setAttribute("role","button");
+        const l=r.severity_level||0;
+        row.setAttribute("aria-label",`${r.name_en}, Level ${l} ${LEVELS[l]}`);
+        row.innerHTML=`<div><div>${r.name_en}</div><div class="sub">${r.pct_level2plus||0}% cells confirmed · max ${r.max_severity_label}</div></div>${lvpill(l)}`;
+        row.onclick=()=>userSelectRegion(r.id);row.onkeydown=e=>{if(e.key==="Enter")userSelectRegion(r.id);};box.appendChild(row);});}
+    function renderLegend(){const L=document.getElementById("legend");
+      L.innerHTML=[0,1,2,3,4].map(l=>`<div><i style="background:${COLORS[l]}"></i><b>${l}</b> ${LEVELS[l]}</div>`).join("")+
+        `<div style="margin-top:3px"><i style="background:#c0161c;opacity:.55"></i> tropical night (layer)</div>`;}
+
+    // =============== popups ===============
+    function cellPopup(p,lngLat){const box=document.getElementById("detail");box.style.display="block";
+      const l=p.severity_level||0;
+      const tnLine = p.tropical_night===true?"Yes — Tmin exceeds 20 °C and/or local TN90":
+                     `No tropical night: Tmin ${p.tmin ?? "–"} °C, local TN90 ${p.tn90 ?? "–"} °C`;
+      const state = l===0?"No heatwave detected at this location for the selected date.":l===1?"Heatwave watch — unusually hot, but persistence criteria are not yet met.":`${LEVELS[l]} — Level ${l}.`;
       box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span>`+
-        `<b>${r.name} / ${r.name_en}</b> <span class="pill ${r.category}"><span class="sym">${CAT_SYM[r.category]}</span>${r.category}</span>`+
-        `<div class="muted">${S.date} · ${r.n_cells} forecast cell(s)${r.from_centroid?" · ⚠ centroid fallback":""}${oneCell?" · limited within-district detail":""} · ${r.data_status}</div>`+
+        `<b>${state}</b> ${lvpill(l)}`+
         `<table>
-          <tr><td>Tmax mean / max / p90</td><td>${r.tmax_mean} / ${r.tmax_max} / ${r.tmax_p90} °C</td></tr>
-          <tr><td>Tmin mean</td><td>${r.tmin_mean} °C</td></tr>
-          <tr><td>TX90 / TX95 / TX99</td><td>${r.tx90} / ${r.tx95} / ${r.tx99} °C</td></tr>
-          <tr><td>Tmax − TX90 / − TX95</td><td>${r.tmax_minus_tx90} / ${r.tmax_minus_tx95} °C</td></tr>
-          <tr><td>TN90 / tropical night</td><td>${r.tn90} °C / ${r.tropical_night?"🌙 yes":"no"}</td></tr>
-          <tr><td>Heat Index / Humidex</td><td>${r.heat_index_max??"–"} / ${r.humidex_max??"–"}</td></tr>
-          <tr><td>3-day TX90 / TX95 event</td><td>${r.tx90_3day_event?"yes":"no"} / ${r.tx95_3day_event?"⚠ yes":"no"}</td></tr>
+          <tr><td>Max temperature</td><td>${p.tmax ?? "–"} °C</td></tr>
+          <tr><td>Local TX90 / TX95</td><td>${p.tx90 ?? "–"} / ${p.tx95 ?? "–"} °C</td></tr>
+          <tr><td>TX90 / TX95 exceedance</td><td>${fmt(p.tx90_exceedance)} / ${fmt(p.tx95_exceedance)} °C</td></tr>
+          <tr><td>Consecutive TX90 / TX95 days</td><td>${p.tx90_run ?? 0} / ${p.tx95_run ?? 0}</td></tr>
+          <tr><td>Event</td><td>${p.event_start? p.event_start+"→"+(p.event_end||"?"):"—"}</td></tr>
+          <tr><td>Tropical night</td><td style="max-width:170px;white-space:normal">${tnLine}</td></tr>
         </table>`+
-        `<div class="foot"><b>Why ${r.category}:</b> ${(r.reasons||[]).join(" ")}</div>`+
-        `<div class="foot">District heat hazard. ${(window.__cityMeta||{}).resolution_note||""}</div>`+
+        `<div class="foot"><b>Reasons:</b> ${(p.reasons||[]).join(" ")}</div>`+
+        `<div class="foot">Data: ${S.mode==="live"?"Live Open-Meteo forecast":S.mode==="historical"?"Observed ERA5-Land":"Synthetic simulation"} · ${footprintData?footprintData.resolution_note||"":""}</div>`;
+    }
+    function cellPopupCity(p){cellPopup({severity_level:p.severity_level,tmax:p.tmax,tmin:p.tmin,tx90:p.thresholds?.tx90,tx95:p.thresholds?.tx95,tn90:p.thresholds?.tn90,tx90_exceedance:p.thresholds?.tx90!=null&&p.tmax!=null?+(p.tmax-p.thresholds.tx90).toFixed(2):null,tx95_exceedance:p.value,tx90_run:p.tx90_run,tx95_run:p.tx95_run,tropical_night:p.tropical_night,reasons:p.reasons});}
+    const fmt=(v)=>v==null?"–":(v>0?"+":"")+v;
+    function showDistrict(id){const r=(window.__regions||[]).find(x=>x.id===id);if(!r)return;highlightRegion(id);
+      const box=document.getElementById("detail");box.style.display="block";
+      if(r.error){box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span><b>${r.name_en}</b><div class="muted">forecast unavailable</div>`;return;}
+      const l=r.severity_level||0;
+      box.innerHTML=`<span class="close" onclick="this.parentNode.style.display='none'">✕</span>`+
+        `<b>${r.name} / ${r.name_en}</b> ${lvpill(l)}`+
+        `<div class="muted">${r.severity_statistic||"district hazard"} · ${r.n_cells} cell(s)${r.from_centroid?" · ⚠ centroid fallback":""} · ${r.data_status}</div>`+
+        `<table>
+          <tr><td>Affected cells ≥ confirmed</td><td>${r.pct_level2plus}%</td></tr>
+          <tr><td>Max / mean / p90 level</td><td>${r.max_severity_level} / ${r.mean_severity_level} / ${r.p90_severity_level}</td></tr>
+          <tr><td>Tmax mean / max / p90</td><td>${r.tmax_mean} / ${r.tmax_max} / ${r.tmax_p90} °C</td></tr>
+          <tr><td>Hottest sampled cell</td><td>${r.hottest_cell_tmax} °C</td></tr>
+          <tr><td>TX90 / TX95</td><td>${r.tx90} / ${r.tx95} °C</td></tr>
+          <tr><td>Tmax − TX95</td><td>${fmt(r.tmax_minus_tx95)} °C</td></tr>
+          <tr><td>Tropical night</td><td>${r.tropical_night?"🌙 yes":"no"}</td></tr>
+        </table>`+
+        `<div class="foot">${r.pct_level2plus}% of sampled district cells are in a confirmed heatwave. Max district level: ${r.max_severity_label}.</div>`+
+        `<div class="foot"><b>Why:</b> ${(r.reasons||[]).join(" ")} · ${(window.__cityMeta||{}).resolution_note||""}</div>`+
         `<button class="btn" onclick="window.__cityProfile('${r.id}')">Check my personal risk here →</button>`;
     }
 
-    // =========================================================
-    //  navigation intents
-    // =========================================================
-    function flyTo(lat,lon,z){ programmaticMove=true; map.flyTo({center:[lon,lat],zoom:z,duration:800}); }
-    function userActivateCity(cityId){ const c=cityRegistry[cityId];
-      setState({city:cityId,region:null},{push:true,fit:true}); }
-    function goNational(){ programmaticMove=true; map.flyTo({center:[31.2,48.8],zoom:5,duration:800});
-      document.getElementById("detail").style.display="none";
-      setState({city:null,region:null},{push:true}); }
-    function userSelectRegion(id){ document.getElementById("detail").style.display="block";
-      setState({region:id},{push:true}); }
-    function clickLocation(lat,lon,name){ window.__click={lat,lon,name}; }
+    // =============== timeline ===============
+    function levelForDate(dt){ if(S.mode==="historical"&&summaryData&&summaryData.event){ return null; }
+      if(footprintData&&footprintData.features){ /* current date only */ } return null; }
+    function renderTimeline(){const track=document.getElementById("tltrack"),lab=document.getElementById("tllabel");
+      track.innerHTML=""; if(!availableDates.length){lab.textContent="";return;}
+      // per-date max level: use timeline from historical event detail, else compute from footprint only for current
+      const lvlByDate=window.__tlLevels||{};
+      availableDates.forEach(dt=>{const c=document.createElement("div");c.className="tlcell"+(dt===S.date?" sel":"");
+        const lv=lvlByDate[dt]; c.style.background=lv!=null?COLORS[lv]:"#d6dde2";
+        c.title=`${dt}${lv!=null?" · L"+lv:""}`; c.setAttribute("aria-label",dt);
+        c.onclick=()=>setState({date:dt},{push:false}); track.appendChild(c);});
+      const idx=availableDates.indexOf(S.date);
+      let ctx="";
+      if(S.mode==="historical"&&summaryData&&summaryData.event){const e=summaryData.event;
+        const day=availableDates.indexOf(S.date)+1; ctx=`Event ${e.start_date} · Day ${day} of ${e.duration_days}`;}
+      else ctx=`${S.date}`;
+      lab.textContent=`${ctx}`;
+    }
+    function togglePlay(){ playing=!playing; document.getElementById("tlbtn").textContent=playing?"⏸":"▶";
+      if(playing)step(); else clearTimeout(playTimer);}
+    function step(){ if(!playing)return; const idx=availableDates.indexOf(S.date);
+      if(idx>=availableDates.length-1){playing=false;document.getElementById("tlbtn").textContent="▶";return;}
+      setState({date:availableDates[idx+1]},{push:false});
+      playTimer=setTimeout(step,900);}
 
-    // zoom-driven activation (with hysteresis; ignores our own moves)
-    map.on("moveend",()=>{
-      if(!mapReady){return;} if(programmaticMove){programmaticMove=false;return;}
-      const z=map.getZoom(), c=map.getCenter();
-      const inKyiv = c.lng>=KYIV_BBOX[0]&&c.lng<=KYIV_BBOX[2]&&c.lat>=KYIV_BBOX[1]&&c.lat<=KYIV_BBOX[3];
-      if(S.level==="national" && z>=ZOOM_IN && inKyiv && cityRegistry.kyiv && cityRegistry.kyiv.has_regions){
-        setState({city:"kyiv",region:null},{push:true,fit:false});
-      } else if(S.city && z<ZOOM_OUT){
-        document.getElementById("detail").style.display="none";
-        setState({city:null,region:null},{push:true,fit:false});
-      }
-    });
+    // =============== historical events ===============
+    async function loadHistoricalEvents(){ try{const d=await jget(`${API}/api/historical-events?minimum_level=2&limit=20`);
+      historicalEvents=d.events||[]; defaultEvent=d.default_event_id;}catch(e){historicalEvents=[];} }
+    async function selectEvent(eid){ let e=historicalEvents.find(x=>x.event_id===eid);
+      let start=e?e.start_date:null;
+      try{const det=await jget(`${API}/api/historical-event/${eid}`);
+        window.__tlLevels={}; det.timeline.forEach(t=>window.__tlLevels[t.date]=t.max_level);
+        availableDates=det.dates; if(!start)start=det.dates[0]; }catch(err){}
+      // MUST set mode:"historical" (this is the mode-selector entry point).
+      setState({mode:"historical",event:eid,date:start||S.date},{push:true});
+    }
 
-    // =========================================================
-    //  controls
-    // =========================================================
-    let dateTimer;
-    document.getElementById("date").oninput=(e)=>{ clearTimeout(dateTimer);
-      const iso=dayISO(+e.target.value); document.getElementById("dateLabel").textContent=iso+(isDemo()?"  (SYNTHETIC heatwave)":"");
-      dateTimer=setTimeout(()=>setState({date:iso},{push:false}),250); };
-    document.getElementById("demo").onchange=(e)=>{ window.__natRank=null; Object.keys(riskCache).forEach(k=>delete riskCache[k]);
-      setState({scenario:e.target.checked?"heatwave":"live"},{push:false}); };
-    document.getElementById("field").onchange=loadField;
-    document.querySelectorAll("#layers button").forEach(btn=>{
-      btn.onclick=()=>setState({layer:btn.dataset.l},{push:false});
-      btn.onkeydown=(e)=>{if(e.key==="Enter")btn.click();};
-    });
-    // debounced, keyboard-accessible city search
-    let sTimer;
-    const searchBox=document.getElementById("search"), results=document.getElementById("searchResults");
-    searchBox.oninput=(e)=>{ clearTimeout(sTimer); const q=e.target.value.trim();
-      if(!q){results.innerHTML="";searchBox.setAttribute("aria-expanded","false");return;}
-      sTimer=setTimeout(async()=>{
-        const d=await (await fetch(`${API}/api/cities?q=${encodeURIComponent(q)}`)).json();
-        results.innerHTML=""; searchBox.setAttribute("aria-expanded", d.cities.length?"true":"false");
-        d.cities.slice(0,6).forEach(c=>{ const row=document.createElement("div"); row.className="row"; row.tabIndex=0; row.setAttribute("role","option");
-          const has=cityRegistry[c.id]&&cityRegistry[c.id].has_regions;
-          row.innerHTML=`<span>${c.name_en}</span><span class="muted">${has?"districts":"point"}</span>`;
-          const go=()=>{ results.innerHTML=""; searchBox.setAttribute("aria-expanded","false"); searchBox.value=c.name_en;
-            if(has)userActivateCity(c.id); else { flyTo(c.lat,c.lon,9); clickLocation(c.lat,c.lon,c.name_en);
-              toast(`District-level detail is not yet available for ${c.name_en}.`); } };
-          row.onclick=go; row.onkeydown=(ev)=>{if(ev.key==="Enter")go();}; results.appendChild(row); });
-      },300); };
+    // =============== navigation ===============
+    function flyTo(lat,lon,z){programmaticMove=true;map.flyTo({center:[lon,lat],zoom:z,duration:800});}
+    function userActivateCity(id){setState({city:id,region:null},{push:true,fit:true});}
+    function goNational(){programmaticMove=true;map.flyTo({center:[31.2,48.8],zoom:5,duration:800});document.getElementById("detail").style.display="none";setState({city:null,region:null},{push:true});}
+    function userSelectRegion(id){document.getElementById("detail").style.display="block";setState({region:id},{push:true});}
+    map.on("moveend",()=>{if(!mapReady)return;if(programmaticMove){programmaticMove=false;return;}
+      const z=map.getZoom(),c=map.getCenter();
+      const inK=c.lng>=KYIV_BBOX[0]&&c.lng<=KYIV_BBOX[2]&&c.lat>=KYIV_BBOX[1]&&c.lat<=KYIV_BBOX[3];
+      if(S.level==="national"&&z>=8.3&&inK&&cityRegistry.kyiv&&cityRegistry.kyiv.has_regions)setState({city:"kyiv",region:null},{push:true,fit:false});
+      else if(S.city&&z<7.2){document.getElementById("detail").style.display="none";setState({city:null,region:null},{push:true,fit:false});}});
 
-    function toast(msg){ const s=document.getElementById("src"); s.textContent=msg; s.setAttribute("role","alert"); setTimeout(()=>loadStatus(),4000); }
+    // =============== controls ===============
+    document.querySelectorAll("#modes button").forEach(b=>b.onclick=async()=>{
+      if(b.dataset.m==="historical"){ if(!historicalEvents.length)await loadHistoricalEvents();
+        const eid=S.event||defaultEvent; if(eid){await selectEvent(eid);return;} }
+      window.__tlLevels=null; setState({mode:b.dataset.m,event:b.dataset.m==="historical"?(S.event||defaultEvent):null},{push:true});});
+    document.getElementById("synthetic").onchange=(e)=>{ Object.keys(fpCache).forEach(k=>delete fpCache[k]); Object.keys(riskCache).forEach(k=>delete riskCache[k]);
+      setState({mode:e.target.checked?"synthetic":"live",event:null},{push:true});};
+    document.querySelectorAll("#layers button").forEach(b=>b.onclick=()=>setState({layer:b.dataset.l},{push:false}));
+    document.getElementById("tlbtn").onclick=togglePlay;
+    let sTimer; const sb=document.getElementById("search"),sr=document.getElementById("searchResults");
+    sb.oninput=(e)=>{clearTimeout(sTimer);const q=e.target.value.trim();if(!q){sr.innerHTML="";sb.setAttribute("aria-expanded","false");return;}
+      sTimer=setTimeout(async()=>{const d=await jget(`${API}/api/cities?q=${encodeURIComponent(q)}`);sr.innerHTML="";sb.setAttribute("aria-expanded",d.cities.length?"true":"false");
+        d.cities.slice(0,6).forEach(c=>{const row=document.createElement("div");row.className="row";row.tabIndex=0;row.setAttribute("role","option");
+          const has=cityRegistry[c.id]&&cityRegistry[c.id].has_regions;row.innerHTML=`<span>${c.name_en}</span><span class="muted">${has?"districts":"point"}</span>`;
+          const go=()=>{sr.innerHTML="";sb.setAttribute("aria-expanded","false");sb.value=c.name_en;if(has)userActivateCity(c.id);else{flyTo(c.lat,c.lon,9);toast(`District-level detail is not yet available for ${c.name_en}.`);}};
+          row.onclick=go;row.onkeydown=ev=>{if(ev.key==="Enter")go();};sr.appendChild(row);});},300);};
+    function toast(m){const s=document.getElementById("src");s.textContent=m;setTimeout(loadStatus,4000);}
+    window.addEventListener("popstate",()=>{readURL();apply({fit:true});});
 
-    // browser back/forward
-    window.addEventListener("popstate",()=>{ readURL(); apply({fit:true}); });
-
-    // =========================================================
-    //  personal risk (context-aware) — reuses existing engine
-    // =========================================================
+    // =============== personal risk (context-aware) ===============
     const PKEY="waves_profile_v1";
     const lp=()=>{try{return JSON.parse(localStorage.getItem(PKEY))||{}}catch{return{}}};
-    const sp=(p)=>localStorage.setItem(PKEY,JSON.stringify(p));
+    const spf=(p)=>localStorage.setItem(PKEY,JSON.stringify(p));
     const g=(id)=>{const el=document.getElementById(id);return el?el.checked:false;};
-    let profileCtx=null;   // {label, env?, lat?, lon?}
-
-    window.__cityProfile=(rid)=>{ const r=(window.__regions||[]).find(x=>x.id===rid); if(!r)return;
-      profileCtx={ label:`${r.name_en}, ${cityRegistry[S.city].name_en} — district-level estimate`,
-        env:{ exceeds_tx90:(r.tmax_minus_tx90??-9)>0, exceeds_tx95:(r.tmax_minus_tx95??-9)>0,
-          exceeds_tx99:(r.tmax_max!=null&&r.tx99!=null&&r.tmax_max>r.tx99),
-          in_primary_event:!!r.tx95_3day_event, event_duration_days:r.tx95_3day_event?3:0,
-          tropical_night:!!r.tropical_night, heat_index_max:r.heat_index_max,
-          baseline_status:(window.__baseline||{}).baseline_status||"provisional",
-          source:`district aggregate (${r.name_en}, ${S.date})` } };
-      openProfile(); };
-    function currentCtx(){
-      if(profileCtx) return profileCtx;
-      if(window.__click) return {label:`${window.__click.name} — clicked location`, lat:window.__click.lat, lon:window.__click.lon};
-      if(S.city&&cityRegistry[S.city]) return {label:`${cityRegistry[S.city].name_en} (city centre)`, lat:cityRegistry[S.city].center[0], lon:cityRegistry[S.city].center[1]};
-      return {label:"Kyiv (default)", lat:50.4501, lon:30.5234};
-    }
+    let profileCtx=null;
+    window.__cityProfile=(rid)=>{const r=(window.__regions||[]).find(x=>x.id===rid);if(!r)return;
+      profileCtx={label:`${r.name_en}, ${cityRegistry[S.city].name_en} — district-level estimate`,
+        env:{exceeds_tx90:(r.tmax_minus_tx90??-9)>0,exceeds_tx95:(r.tmax_minus_tx95??-9)>0,exceeds_tx99:(r.tmax_max!=null&&r.tx99!=null&&r.tmax_max>r.tx99),
+          in_primary_event:(r.severity_level||0)>=2,event_duration_days:(r.severity_level||0)>=2?3:0,tropical_night:!!r.tropical_night,
+          heat_index_max:r.heat_index_max,baseline_status:(window.__baseline||{}).baseline_status||"provisional",source:`district aggregate (${r.name_en}, ${S.date})`}};
+      openProfile();};
+    function currentCtx(){if(profileCtx)return profileCtx;
+      if(S.city&&cityRegistry[S.city])return{label:`${cityRegistry[S.city].name_en} (city centre)`,lat:cityRegistry[S.city].center[0],lon:cityRegistry[S.city].center[1]};
+      return{label:"Kyiv (default)",lat:50.4501,lon:30.5234};}
     function chk(id,l,c){return `<label class="chk"><input type="checkbox" id="${id}" ${c?"checked":""}/> ${l}</label>`;}
-    window.openProfile=function(){
-      const p=lp(),v=p.vulnerability||{},e=p.exposure||{},pr=p.protection||{},s=p.symptoms||{},ctx=currentCtx();
+    window.openProfile=function(){const p=lp(),v=p.vulnerability||{},e=p.exposure||{},pr=p.protection||{},s=p.symptoms||{},ctx=currentCtx();
       document.getElementById("overlay").style.display="flex";
-      document.getElementById("sheet").innerHTML=`
-        <span class="close" onclick="window.__closeOverlay()">✕</span>
+      document.getElementById("sheet").innerHTML=`<span class="close" onclick="window.__closeOverlay()">✕</span>
         <h1 style="font-size:16px">Personal heat-risk profile</h1>
         <div class="muted">Environmental context: <b>${ctx.label}</b> · ${S.date}. No account, no names — stored only in your browser.</div>
         <fieldset><legend>Emergency symptoms now</legend><div class="grid2">
-          ${chk("s_conf","Confusion",s.confusion)}${chk("s_faint","Fainting / unconscious",s.loss_of_consciousness)}
-          ${chk("s_seiz","Seizure",s.seizure)}${chk("s_chest","Chest pain",s.chest_pain)}
-          ${chk("s_breath","Severe breathlessness",s.severe_shortness_of_breath)}${chk("s_stroke","Stroke-like symptoms",s.stroke_like_symptoms)}
-          ${chk("s_drink","Cannot drink",s.cannot_drink)}${chk("s_weak","Severe weakness",s.severe_weakness)}
+          ${chk("s_conf","Confusion",s.confusion)}${chk("s_faint","Fainting / unconscious",s.loss_of_consciousness)}${chk("s_seiz","Seizure",s.seizure)}${chk("s_chest","Chest pain",s.chest_pain)}
+          ${chk("s_breath","Severe breathlessness",s.severe_shortness_of_breath)}${chk("s_stroke","Stroke-like symptoms",s.stroke_like_symptoms)}${chk("s_drink","Cannot drink",s.cannot_drink)}${chk("s_weak","Severe weakness",s.severe_weakness)}
         </div></fieldset>
-        <fieldset><legend>Age &amp; health (optional)</legend>
-          <label class="blk" for="age">Age band</label>
+        <fieldset><legend>Age &amp; health (optional)</legend><label class="blk" for="age">Age band</label>
           <select id="age">${["","under_5","5_17","18_64","65_74","75_plus"].map(a=>`<option value="${a}" ${v.age_band===a?"selected":""}>${a||"prefer not to answer"}</option>`).join("")}</select>
           <div class="grid2" style="margin-top:8px">
-          ${chk("v_preg","Pregnancy",v.pregnancy)}${chk("v_cvd","Cardiovascular disease",v.cardiovascular)}
-          ${chk("v_hf","Heart failure",v.heart_failure)}${chk("v_htn","Hypertension",v.hypertension)}
-          ${chk("v_ckd","Chronic kidney disease",v.ckd)}${chk("v_dia","Diabetes",v.diabetes)}
-          ${chk("v_resp","Chronic respiratory disease",v.chronic_respiratory)}${chk("v_med","Medicine affecting hydration/BP",v.thermoregulation_medication)}
-          ${chk("v_fluid","Prescribed fluid restriction",v.fluid_restriction)}${chk("v_mob","Limited mobility",v.limited_mobility)}
-          ${chk("v_alone","Lives alone",v.living_alone)}
+          ${chk("v_preg","Pregnancy",v.pregnancy)}${chk("v_cvd","Cardiovascular disease",v.cardiovascular)}${chk("v_hf","Heart failure",v.heart_failure)}${chk("v_htn","Hypertension",v.hypertension)}
+          ${chk("v_ckd","Chronic kidney disease",v.ckd)}${chk("v_dia","Diabetes",v.diabetes)}${chk("v_resp","Chronic respiratory disease",v.chronic_respiratory)}${chk("v_med","Medicine affecting hydration/BP",v.thermoregulation_medication)}
+          ${chk("v_fluid","Prescribed fluid restriction",v.fluid_restriction)}${chk("v_mob","Limited mobility",v.limited_mobility)}${chk("v_alone","Lives alone",v.living_alone)}
           </div></fieldset>
         <fieldset><legend>Exposure</legend><div class="grid2">
-          ${chk("e_work","Outdoor work",e.outdoor_work)}${chk("e_sport","Intense outdoor sport",e.intense_outdoor_sport)}
-          ${chk("e_sun","Long time in direct sun",e.direct_sun)}${chk("e_transport","Hot transport",e.hot_transport)}
-          ${chk("e_top","Top-floor / overheated home",e.top_floor_or_overheated_home)}${chk("e_night","Night-time exposure",e.nighttime_exposure)}
+          ${chk("e_work","Outdoor work",e.outdoor_work)}${chk("e_sport","Intense outdoor sport",e.intense_outdoor_sport)}${chk("e_sun","Long time in direct sun",e.direct_sun)}${chk("e_transport","Hot transport",e.hot_transport)}${chk("e_top","Top-floor / overheated home",e.top_floor_or_overheated_home)}${chk("e_night","Night-time exposure",e.nighttime_exposure)}
         </div></fieldset>
         <fieldset><legend>Protection available</legend><div class="grid2">
-          ${chk("p_ac","Air conditioning",pr.air_conditioning)}${chk("p_cool","Access to a cooler place",pr.access_to_cooler_place)}
-          ${chk("p_water","Reliable water",pr.reliable_water)}${chk("p_social","Social support / check-ins",pr.social_support)}
-          ${chk("p_sched","Can change schedule",pr.can_change_schedule)}${chk("p_elec","Reliable electricity",pr.reliable_electricity)}
+          ${chk("p_ac","Air conditioning",pr.air_conditioning)}${chk("p_cool","Access to a cooler place",pr.access_to_cooler_place)}${chk("p_water","Reliable water",pr.reliable_water)}${chk("p_social","Social support / check-ins",pr.social_support)}${chk("p_sched","Can change schedule",pr.can_change_schedule)}${chk("p_elec","Reliable electricity",pr.reliable_electricity)}
         </div></fieldset>
         <button class="btn" onclick="window.__submitProfile()">See my explained risk →</button>
         <button class="btn sec" onclick="window.__closeOverlay()">Cancel</button>
-        <div class="foot">Not a medical diagnosis. Emergency symptoms always trigger an urgent warning.</div>`;
-      document.getElementById("s_conf").focus();
-    };
+        <div class="foot">Not a medical diagnosis. Emergency symptoms always trigger an urgent warning.</div>`;};
     window.__closeOverlay=()=>document.getElementById("overlay").style.display="none";
-    window.__submitProfile=async function(){
-      const ctx=currentCtx();
-      const profile={ vulnerability:{age_band:document.getElementById("age").value||null,pregnancy:g("v_preg"),
-          cardiovascular:g("v_cvd"),heart_failure:g("v_hf"),hypertension:g("v_htn"),ckd:g("v_ckd"),diabetes:g("v_dia"),
-          chronic_respiratory:g("v_resp"),thermoregulation_medication:g("v_med"),fluid_restriction:g("v_fluid"),
-          limited_mobility:g("v_mob"),living_alone:g("v_alone")},
-        exposure:{outdoor_work:g("e_work"),intense_outdoor_sport:g("e_sport"),direct_sun:g("e_sun"),
-          hot_transport:g("e_transport"),top_floor_or_overheated_home:g("e_top"),nighttime_exposure:g("e_night"),hours_outside:g("e_work")?8:1},
-        protection:{air_conditioning:g("p_ac"),access_to_cooler_place:g("p_cool"),reliable_water:g("p_water"),
-          social_support:g("p_social"),can_change_schedule:g("p_sched"),reliable_electricity:g("p_elec")},
-        symptoms:{confusion:g("s_conf"),loss_of_consciousness:g("s_faint"),seizure:g("s_seiz"),chest_pain:g("s_chest"),
-          severe_shortness_of_breath:g("s_breath"),stroke_like_symptoms:g("s_stroke"),cannot_drink:g("s_drink"),severe_weakness:g("s_weak")} };
-      sp(profile);
-      if(ctx.env){ profile.environment=ctx.env; } else { profile.latitude=ctx.lat; profile.longitude=ctx.lon; profile.date=S.date; }
-      let d; try{ d=await (await fetch(`${API}/api/profile-risk?scenario=${isDemo()?"heatwave":""}`,
-        {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(profile)})).json(); }
-      catch(err){ document.getElementById("sheet").innerHTML=`<span class="close" onclick="window.__closeOverlay()">✕</span><p>Could not reach the risk service.</p>`; return; }
-      renderResult(d,ctx.label);
-    };
-    function renderResult(d,ctxLabel){
-      const sheet=document.getElementById("sheet"); let h=`<span class="close" onclick="window.__closeOverlay()">✕</span>`;
-      h+=`<div class="muted" style="margin-bottom:6px">Environmental context: <b>${ctxLabel}</b></div>`;
-      if(d.emergency&&d.emergency.active){
-        h+=`<div class="emerg"><b>⚠ EMERGENCY — call 103</b><p>${d.emergency.message_en}</p>
-          <div style="font-size:12px">Reported: ${d.emergency.symptoms.join(", ").replace(/_/g," ")}</div></div>`;
-      }else{
-        h+=`<h1 style="font-size:16px">Your heat-risk: <span class="pill ${d.category}"><span class="sym">${CAT_SYM[d.category]}</span>${d.category.toUpperCase()}</span></h1>
-          <div class="muted">Confidence: ${d.confidence}. ${d.protection_applied?"Protective factors lowered this by one level.":""}</div>
-          <h3 style="font-size:13px;margin:12px 0 4px">Top reasons increasing risk</h3>
-          ${(d.top_reasons.length?d.top_reasons:[{detail:"No specific escalating factors."}]).map(r=>`<div class="reason">• ${r.detail}</div>`).join("")}
-          ${d.protective_factors.length?`<h3 style="font-size:13px;margin:12px 0 4px">Protective factors you have</h3><div class="muted">${d.protective_factors.join(", ").replace(/_/g," ")}</div>`:""}`;
-      }
-      if(d.guardrails.length){h+=`<h3 style="font-size:13px;margin:12px 0 4px">Important safety notes</h3>`+d.guardrails.map(x=>`<div class="reason" style="color:#a15c00">⚠ ${x.en}</div>`).join("");}
-      if(d.recommendations.length){h+=`<h3 style="font-size:13px;margin:12px 0 4px">Recommended actions</h3>`+d.recommendations.map(r=>`<div class="reason">✓ ${r.en} <span class="muted">(${r.source_org||"src"}, ${r.source_date||""})</span></div>`).join("");}
-      h+=`<div class="foot">${d.disclaimer_en} · rule engine v${d.rule_engine_version}</div><button class="btn sec" onclick="window.openProfile()">Edit profile</button>`;
-      sheet.innerHTML=h;
-    }
-    document.getElementById("openProfile").onclick=()=>{ profileCtx=null; if(S.region)window.__cityProfile(S.region); else openProfile(); };
+    window.__submitProfile=async function(){const ctx=currentCtx();
+      const profile={vulnerability:{age_band:document.getElementById("age").value||null,pregnancy:g("v_preg"),cardiovascular:g("v_cvd"),heart_failure:g("v_hf"),hypertension:g("v_htn"),ckd:g("v_ckd"),diabetes:g("v_dia"),chronic_respiratory:g("v_resp"),thermoregulation_medication:g("v_med"),fluid_restriction:g("v_fluid"),limited_mobility:g("v_mob"),living_alone:g("v_alone")},
+        exposure:{outdoor_work:g("e_work"),intense_outdoor_sport:g("e_sport"),direct_sun:g("e_sun"),hot_transport:g("e_transport"),top_floor_or_overheated_home:g("e_top"),nighttime_exposure:g("e_night"),hours_outside:g("e_work")?8:1},
+        protection:{air_conditioning:g("p_ac"),access_to_cooler_place:g("p_cool"),reliable_water:g("p_water"),social_support:g("p_social"),can_change_schedule:g("p_sched"),reliable_electricity:g("p_elec")},
+        symptoms:{confusion:g("s_conf"),loss_of_consciousness:g("s_faint"),seizure:g("s_seiz"),chest_pain:g("s_chest"),severe_shortness_of_breath:g("s_breath"),stroke_like_symptoms:g("s_stroke"),cannot_drink:g("s_drink"),severe_weakness:g("s_weak")}};
+      spf(profile);
+      if(ctx.env)profile.environment=ctx.env; else {profile.latitude=ctx.lat;profile.longitude=ctx.lon;profile.date=S.date;}
+      let d;try{d=await (await fetch(`${API}/api/profile-risk?scenario=${S.mode==="synthetic"?"heatwave":""}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(profile)})).json();}
+      catch(err){document.getElementById("sheet").innerHTML=`<span class="close" onclick="window.__closeOverlay()">✕</span><p>Could not reach the risk service.</p>`;return;}
+      renderResult(d,ctx.label);};
+    function renderResult(d,ctxLabel){const sheet=document.getElementById("sheet");let h=`<span class="close" onclick="window.__closeOverlay()">✕</span><div class="muted" style="margin-bottom:6px">Environmental context: <b>${ctxLabel}</b></div>`;
+      if(d.emergency&&d.emergency.active){h+=`<div class="emerg"><b>⚠ EMERGENCY — call 103</b><p>${d.emergency.message_en}</p><div style="font-size:12px">Reported: ${d.emergency.symptoms.join(", ").replace(/_/g," ")}</div></div>`;}
+      else{h+=`<h1 style="font-size:16px">Your heat-risk: <span class="lvpill" style="background:${({low:"#4a90c2",moderate:"#e0a300",high:"#e2681c",critical:"#c0161c"})[d.category]}">${d.category.toUpperCase()}</span></h1>
+        <div class="muted">Confidence: ${d.confidence}. ${d.protection_applied?"Protective factors lowered this by one level.":""}</div>
+        <h3 style="font-size:13px;margin:12px 0 4px">Top reasons increasing risk</h3>${(d.top_reasons.length?d.top_reasons:[{detail:"No specific escalating factors."}]).map(r=>`<div class="reason">• ${r.detail}</div>`).join("")}
+        ${d.protective_factors.length?`<h3 style="font-size:13px;margin:12px 0 4px">Protective factors you have</h3><div class="muted">${d.protective_factors.join(", ").replace(/_/g," ")}</div>`:""}`;}
+      if(d.guardrails.length)h+=`<h3 style="font-size:13px;margin:12px 0 4px">Important safety notes</h3>`+d.guardrails.map(x=>`<div class="reason" style="color:#a15c00">⚠ ${x.en}</div>`).join("");
+      if(d.recommendations.length)h+=`<h3 style="font-size:13px;margin:12px 0 4px">Recommended actions</h3>`+d.recommendations.map(r=>`<div class="reason">✓ ${r.en} <span class="muted">(${r.source_org||"src"}, ${r.source_date||""})</span></div>`).join("");
+      h+=`<div class="foot">${d.disclaimer_en} · rule engine v${d.rule_engine_version}</div><button class="btn sec" onclick="window.openProfile()">Edit profile</button>`;sheet.innerHTML=h;}
+    document.getElementById("openProfile").onclick=()=>{profileCtx=null;if(S.region)window.__cityProfile(S.region);else openProfile();};
 
-    // =========================================================
-    //  boot
-    // =========================================================
-    map.on("load", async()=>{
-      readURL();
-      try{ const av=await (await fetch(`${API}/api/cities-available`)).json();
-        av.cities.forEach(c=>cityRegistry[c.id]=c); }catch(e){}
+    // =============== boot ===============
+    map.on("load",async()=>{ readURL();
+      try{const av=await jget(`${API}/api/cities-available`);av.cities.forEach(c=>cityRegistry[c.id]=c);}catch(e){}
       await loadStatus();
+      if(S.mode==="historical"){ await loadHistoricalEvents(); if(!S.event)S.event=defaultEvent;
+        if(S.event){try{const det=await jget(`${API}/api/historical-event/${S.event}`);window.__tlLevels={};det.timeline.forEach(t=>window.__tlLevels[t.date]=t.max_level);availableDates=det.dates;if(!S.date)S.date=det.dates[0];}catch(e){}} }
       mapReady=true;
-      // Page is ready for interaction immediately; data streams in asynchronously
-      // so slow/unavailable live forecasts never block the UI (or tests).
-      window.__waves={ getState:()=>({...S}), regions:()=>(window.__regions||[]),
-                       ready:true, mapCount:()=>document.querySelectorAll(".maplibregl-canvas").length };
-      apply({fit:!!S.city});
+      window.__waves={getState:()=>({...S}),regions:()=>(window.__regions||[]),ready:true,
+        mapCount:()=>document.querySelectorAll(".maplibregl-canvas").length,summary:()=>summaryData};
+      await apply({fit:!!S.city});
     });
   })();
   </script>

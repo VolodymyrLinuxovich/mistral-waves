@@ -6,6 +6,8 @@ data/raw/
 data/cache/
 data/processed/*.nc
 data/processed/*.nc.tmp
+data/processed/ukraine_heat_thresholds_2020_provisional.npz
+data/processed/ukraine_heat_thresholds_2020_provisional.meta.json
 data/metadata/
 tmp/
 output/
