@@ -19,8 +19,10 @@ import numpy as np
 import xarray as xr
 
 PROCESSED = Path(__file__).resolve().parents[1] / "data" / "processed"
-META_KEYS = ["baseline_status", "baseline_years", "expected_baseline", "provisional",
-             "tn90_status", "source_dataset", "created_utc", "WARNING_partial_baseline"]
+META_KEYS = ["baseline_status", "baseline_years", "baseline_year_count",
+             "expected_baseline", "expected_year_count", "threshold_version",
+             "provisional", "tn90_status", "source_dataset", "created_utc",
+             "WARNING_partial_baseline"]
 
 
 def export(nc_path: Path) -> Path:

@@ -176,7 +176,10 @@ def main() -> int:
                     {"event": meta, "dates": dates[i:j + 1], "footprints": foot}))
             i = j + 1
 
-    catalogue.sort(key=lambda e: (e["maximum_severity_level"], e["duration_days"],
+    # Rank by intensity (max temperature) within a level so genuine summer
+    # heatwaves lead over long-but-mild shoulder-season spells.
+    catalogue.sort(key=lambda e: (e["maximum_severity_level"],
+                                  e.get("maximum_temperature") or -99,
                                   e["affected_cell_count"]), reverse=True)
     PROCESSED.joinpath("historical_events.json").write_text(json.dumps(
         {"generated_years": years, "algorithm_version": ALGORITHM_VERSION,

@@ -193,7 +193,10 @@ def main() -> int:
         source_note="ERA5-Land reanalysis (~9 km). Not ground truth / not station data.",
         baseline_status=baseline_status,                 # provisional | complete
         baseline_years=",".join(map(str, baseline)),
+        baseline_year_count=len(baseline),
         expected_baseline="1991-2020",
+        expected_year_count=len(FULL_YEARS),
+        threshold_version="full-baseline-1.0.0" if baseline_status == "complete" else "provisional",
         provisional="false" if baseline_status == "complete" else "true",
         tmin_years_present=",".join(map(str, sorted(tmin_years))) or "none",
         tn90_status=tn90_status,

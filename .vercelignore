@@ -25,3 +25,5 @@ playwright-report/
 test-results/
 package.json
 package-lock.json
+data/processed/ukraine_heat_thresholds_provisional.npz
+data/processed/ukraine_heat_thresholds_provisional.meta.json
