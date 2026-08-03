@@ -8,97 +8,140 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="./config.js"></script>
   <style>
-    :root{--fg:#16202a;--panel:rgba(255,255,255,.97);--line:#e4e8ec;--accent:#16202a;}
+    :root{--fg:#16202a;--panel:rgba(255,255,255,.97);--line:#dce3e8;--accent:#16202a;--focus:#2b78ad;}
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;color:var(--fg)}
+    body{height:100dvh;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:#eef2f5}
+    button,select,input{font:inherit}
+    #workspace{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(290px,340px) minmax(0,1fr);overflow:hidden}
+    #map-region{position:relative;min-width:0;min-height:0;overflow:hidden}
     #map{position:absolute;inset:0}
     .card{background:var(--panel);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.16)}
-    #banner{position:absolute;top:0;left:0;right:0;z-index:6;font-size:12.5px;padding:7px 14px;text-align:center;color:#fff;background:#8a4b00}
+    #banner{z-index:6;font-size:12.5px;line-height:1.35;padding:7px 14px;text-align:center;color:#fff;background:#8a4b00}
     #banner.complete{background:#155e2e}#banner.synthetic{background:#5a2b8a}#banner.historical{background:#1d4e6b}
-    #disclaimer{position:absolute;bottom:0;left:0;right:0;z-index:6;background:#111a22;color:#e9eef2;font-size:11px;padding:6px 14px;text-align:center}
-    #crumbs{position:absolute;top:44px;left:12px;z-index:4;display:flex;gap:6px;align-items:center;background:var(--panel);border-radius:10px;padding:6px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
+    #disclaimer{z-index:6;background:#111a22;color:#e9eef2;font-size:11px;line-height:1.35;padding:6px 14px;text-align:center}
+    #crumbs{position:absolute;top:12px;left:12px;z-index:4;display:flex;gap:6px;align-items:center;background:var(--panel);border-radius:10px;padding:6px 10px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
     #crumbs a{color:#1d3b57;cursor:pointer}#crumbs a:hover{text-decoration:underline}#crumbs .sep{color:#9aa7b1}#crumbs .cur{font-weight:600}
-    #panel{position:absolute;top:88px;left:12px;z-index:3;width:min(370px,94vw);max-height:calc(100vh-190px);overflow:auto;padding:14px 16px}
+    #panel{position:relative;z-index:3;min-width:0;min-height:0;overflow-y:auto;padding:15px 16px 12px;border-right:1px solid var(--line);border-radius:0;box-shadow:4px 0 18px rgba(28,45,58,.09);scrollbar-gutter:stable}
     h1{font-size:16px;margin:0 0 2px}.muted{color:#5c6b78;font-size:12px}
     .seg{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-    .seg button,select,input{font:inherit;font-size:12px;padding:6px 9px;border:1px solid #cdd4da;border-radius:8px;background:#fff;cursor:pointer}
+    .seg button,select,input{font-size:12px;padding:6px 9px;border:1px solid #c4ced6;border-radius:8px;background:#fff;cursor:pointer}
     .seg button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .seg button:focus-visible,input:focus-visible,#crumbs a:focus-visible,.row:focus-visible{outline:3px solid #4a90c2;outline-offset:1px}
+    button:focus-visible,select:focus-visible,input:focus-visible,#crumbs a:focus-visible,.row:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
     label.blk{display:block;font-size:11px;color:#5c6b78;margin:8px 0 3px;text-transform:uppercase;letter-spacing:.03em}
     input#search{width:100%}
     #headline{font-size:13px;padding:8px 10px;border-radius:8px;background:#f2f5f7;margin:8px 0}
     #headline b{display:block;font-size:14px}
     .list{margin:4px 0 0;border-top:1px solid var(--line)}
-    .row{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
-    .row:hover{background:#f6f8fa}.row.sel{background:#eaf1f7}
+    #ranklist{max-height:23vh;overflow-y:auto;overscroll-behavior:contain}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;padding:7px 8px;border-bottom:1px solid var(--line);border-left:3px solid transparent;font-size:13px;cursor:pointer}
+    .row:hover{background:#f3f6f8}.row.sel{background:#e2edf5;border-left-color:#245d85}.row>div:first-child{min-width:0}.row>div:first-child>div:first-child{font-weight:650}
     .row .sub{font-size:11px;color:#5c6b78}
-    .lvpill{font-size:11px;padding:1px 7px;border-radius:999px;color:#fff;white-space:nowrap}
+    .lvpill{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;color:#fff;white-space:nowrap}
     .legend{display:flex;flex-direction:column;gap:3px;font-size:11.5px;margin-top:8px}
     .legend div{display:flex;align-items:center;gap:6px}.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
     .btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13px;cursor:pointer;width:100%;margin-top:10px}
+    #openProfile{position:sticky;bottom:0;z-index:2;min-height:44px;box-shadow:0 -8px 14px rgba(255,255,255,.94);margin-bottom:2px}
     .btn.sec{background:#eef2f5;color:var(--accent)}
     details>summary{cursor:pointer;font-size:11px;color:#5c6b78;text-transform:uppercase;letter-spacing:.03em;margin:8px 0 3px}
     table{width:100%;border-collapse:collapse;font-size:12px}th,td{text-align:right;padding:3px 4px;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
     .foot{font-size:11px;color:#5c6b78;margin-top:8px}.warnrow{color:#a15c00;font-size:11.5px;margin-top:6px}
-    /* timeline */
-    #timeline{position:absolute;bottom:26px;left:12px;right:12px;z-index:4;display:flex;gap:8px;align-items:center;background:var(--panel);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px rgba(0,0,0,.14)}
-    #tlbtn{font-size:14px;width:34px;height:34px;border-radius:8px;border:1px solid #cdd4da;background:#fff;cursor:pointer;flex:none}
-    #tltrack{flex:1;display:flex;gap:2px;align-items:stretch;height:34px}
-    .tlcell{flex:1;border-radius:3px;cursor:pointer;min-width:6px;position:relative}
-    .tlcell.sel{outline:2px solid #16202a}
-    #tllabel{font-size:12px;min-width:150px;text-align:right}
+    /* Bottom-docked, video-player-style timeline (map column only). */
+    #timeline{--progress:0%;position:absolute;bottom:12px;left:12px;right:12px;z-index:4;display:grid;grid-template-columns:auto minmax(116px,auto) minmax(150px,1fr) auto auto;grid-template-areas:"buttons current range end speed" "buttons status status status speed";column-gap:12px;row-gap:4px;align-items:center;background:rgba(255,255,255,.97);border:1px solid rgba(205,215,222,.9);border-radius:15px;padding:11px 14px;box-shadow:0 8px 28px rgba(19,36,49,.22);backdrop-filter:blur(10px)}
+    .tlbuttons{grid-area:buttons;display:flex;align-items:center;gap:6px}
+    .tlbutton{display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #c7d1d9;border-radius:50%;background:#fff;color:#182631;font-size:17px;line-height:1;cursor:pointer}
+    #tlbtn{background:var(--accent);border-color:var(--accent);color:#fff;font-size:16px;box-shadow:0 3px 9px rgba(22,32,42,.24)}
+    .tldate{grid-area:current;min-width:0}.tldate strong{display:block;font-size:13px;line-height:1.2}.tldate span{display:block;font-size:10px;line-height:1.25;color:#60717e;text-transform:uppercase;letter-spacing:.04em}
+    .tlrange-wrap{grid-area:range;position:relative;display:flex;align-items:center;min-width:0;height:30px}
+    #tlrange{-webkit-appearance:none;appearance:none;width:100%;height:30px;margin:0;padding:0;border:0;border-radius:0;background:transparent;cursor:pointer;accent-color:#a9481c}
+    #tlrange::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(to right,#a9481c 0 var(--progress),#d6dee4 var(--progress) 100%)}
+    #tlrange::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border:3px solid #fff;border-radius:50%;background:#a9481c;box-shadow:0 0 0 1px #873713,0 2px 5px rgba(0,0,0,.25)}
+    #tlrange::-moz-range-track{height:6px;border-radius:999px;background:linear-gradient(to right,#a9481c 0 var(--progress),#d6dee4 var(--progress) 100%)}
+    #tlrange::-moz-range-thumb{width:14px;height:14px;border:3px solid #fff;border-radius:50%;background:#a9481c;box-shadow:0 0 0 1px #873713,0 2px 5px rgba(0,0,0,.25)}
+    #tlmarkers{position:absolute;left:9px;right:9px;top:4px;height:5px;pointer-events:none}.tlmarker{position:absolute;width:5px;height:5px;border-radius:50%;transform:translateX(-50%);box-shadow:0 0 0 1px rgba(255,255,255,.8)}
+    #tlend{grid-area:end;white-space:nowrap;font-size:11px;color:#526472}
+    .tlspeed{grid-area:speed;display:flex;align-items:center;gap:5px;font-size:10px;color:#60717e;text-transform:uppercase;letter-spacing:.04em}.tlspeed select{min-width:63px;height:34px;padding:4px 7px;color:var(--fg);text-transform:none}
+    #tlstatus{grid-area:status;min-width:0;font-size:11.5px;color:#526472;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #timeline[data-playing="true"] #tlbtn{background:#a9481c;border-color:#a9481c}
     #overlay{position:fixed;inset:0;z-index:10;background:rgba(10,15,20,.45);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px}
     #sheet{background:#fff;border-radius:14px;width:min(520px,96vw);padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
     fieldset{border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:10px 12px}legend{font-size:12px;color:#5c6b78;padding:0 6px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.chk{font-size:13px;display:flex;align-items:center;gap:6px}
     .emerg{background:#c0161c;color:#fff;padding:14px 16px;border-radius:10px}.emerg b{font-size:17px}
     .reason{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}.close{float:right;cursor:pointer;color:#5c6b78;font-size:15px}
-    #detail{display:none;position:absolute;bottom:78px;right:12px;z-index:5;width:min(340px,94vw);max-height:52vh;overflow:auto;padding:12px 14px}
-    @media(max-width:640px){#crumbs{top:40px;font-size:12px}#panel{top:auto;bottom:78px;left:0;right:0;width:100%;max-height:44vh;border-radius:14px 14px 0 0}#timeline{bottom:26px}#detail{bottom:120px}}
+    #detail{display:none;position:absolute;bottom:118px;right:12px;z-index:5;width:min(340px,94vw);max-height:52%;overflow:auto;padding:12px 14px}
+    @media(max-width:900px) and (min-width:641px){#workspace{grid-template-columns:minmax(280px,310px) minmax(0,1fr)}#timeline{grid-template-columns:auto minmax(100px,auto) minmax(120px,1fr) auto;grid-template-areas:"buttons current range speed" "buttons status end speed"}#tlend{text-align:right}}
+    @media(max-width:640px){
+      body{grid-template-rows:auto minmax(0,1fr) auto}
+      #workspace{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(230px,1fr) minmax(190px,40vh);overflow:hidden}
+      #map-region{grid-row:1}
+      #panel{grid-row:2;border:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -8px 24px rgba(20,36,48,.16);padding:12px 14px 10px}
+      #crumbs{top:8px;left:8px;max-width:calc(100% - 68px);font-size:12px;overflow:hidden;white-space:nowrap}
+      #timeline{bottom:8px;left:8px;right:8px;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"buttons current speed" "range range range" "status status end";gap:6px 9px;padding:9px 10px}
+      .tlbuttons{gap:4px}.tlbutton{width:44px;height:44px}
+      .tldate strong{font-size:12px}.tldate span{font-size:9px}
+      .tlspeed{justify-self:end}.tlspeed>span{display:none}.tlspeed select{min-width:57px;height:36px}
+      .tlrange-wrap{height:26px}#tlrange{height:26px}#tlstatus{font-size:10.5px}#tlend{font-size:10px}
+      #detail{bottom:138px;right:8px;max-height:58%;width:calc(100% - 16px)}
+      #ranklist{max-height:18vh}
+      #banner{font-size:11px;padding:5px 8px}#disclaimer{font-size:10px;padding:5px 8px}
+    }
   </style>
 </head>
 <body>
   <div id="banner" role="status" aria-live="polite"></div>
-  <div id="map"></div>
+  <main id="workspace">
+    <section id="panel" aria-label="Context panel">
+      <div id="panel-body"></div>
+      <label class="blk">Data mode</label>
+      <div class="seg" id="modes" role="group" aria-label="Data mode">
+        <button data-m="live" class="active">Live forecast</button>
+        <button data-m="historical">Historical replay</button>
+      </div>
+      <div id="mode-extra"></div>
+      <div id="headline" role="status" aria-live="polite">Loading…</div>
+      <label class="blk" for="search">City search</label>
+      <input id="search" placeholder="Type a city (Kyiv, Львів…)" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" />
+      <div id="searchResults" class="list" role="listbox" aria-label="City results"></div>
+      <label class="blk">Layer</label>
+      <div class="seg" id="layers" role="group" aria-label="Hazard layer">
+        <button data-l="hazard" class="active">Heat hazard</button>
+        <button data-l="tx95_exceedance">TX95 exceed</button>
+        <button data-l="tx90_exceedance">TX90 exceed</button>
+        <button data-l="nighttime">Tropical night</button>
+        <button data-l="heat_index">Heat Index</button>
+      </div>
+      <div id="rank-extra"></div>
+      <div class="legend" id="legend" aria-label="Severity legend"></div>
+      <details><summary>Developer tools</summary>
+        <label class="chk"><input type="checkbox" id="synthetic"/> Synthetic heatwave simulation (not observed/forecast)</label>
+      </details>
+      <button class="btn" id="openProfile">Check my personal risk →</button>
+      <div class="foot" id="src" aria-live="polite">Loading data status…</div>
+    </section>
+
+    <section id="map-region" aria-label="Heat hazard map">
+      <div id="map"></div>
+      <nav id="crumbs" aria-label="Breadcrumb"></nav>
+      <div id="detail" class="card"></div>
+      <div id="timeline" role="region" aria-label="Forecast timeline" data-playing="false">
+        <div class="tlbuttons">
+          <button class="tlbutton" id="tlprev" type="button" aria-label="Previous date">‹</button>
+          <button class="tlbutton" id="tlbtn" type="button" aria-label="Play timeline" aria-pressed="false">▶</button>
+          <button class="tlbutton" id="tlnext" type="button" aria-label="Next date">›</button>
+        </div>
+        <div class="tldate"><span id="tlkind">Forecast date</span><strong id="tlcurrent">Loading…</strong></div>
+        <div class="tlrange-wrap">
+          <input id="tlrange" type="range" min="0" max="0" step="1" value="0" aria-label="Forecast date" />
+          <div id="tlmarkers" aria-hidden="true"></div>
+        </div>
+        <div id="tlend"></div>
+        <label class="tlspeed" for="tlspeed"><span>Speed</span><select id="tlspeed" aria-label="Playback speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option></select></label>
+        <div id="tlstatus" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
   <div id="disclaimer">⚕ Environmental heat-risk estimate &amp; safety guidance — NOT a medical diagnosis; it does not replace a healthcare professional.</div>
-  <nav id="crumbs" aria-label="Breadcrumb"></nav>
-
-  <section id="panel" class="card" aria-label="Context panel">
-    <div id="panel-body"></div>
-    <label class="blk">Data mode</label>
-    <div class="seg" id="modes" role="group" aria-label="Data mode">
-      <button data-m="live" class="active">Live forecast</button>
-      <button data-m="historical">Historical replay</button>
-    </div>
-    <div id="mode-extra"></div>
-    <div id="headline" role="status" aria-live="polite">Loading…</div>
-    <label class="blk" for="search">City search</label>
-    <input id="search" placeholder="Type a city (Kyiv, Львів…)" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list" />
-    <div id="searchResults" class="list" role="listbox" aria-label="City results"></div>
-    <label class="blk">Layer</label>
-    <div class="seg" id="layers" role="group" aria-label="Hazard layer">
-      <button data-l="hazard" class="active">Heat hazard</button>
-      <button data-l="tx95_exceedance">TX95 exceed</button>
-      <button data-l="tx90_exceedance">TX90 exceed</button>
-      <button data-l="nighttime">Tropical night</button>
-      <button data-l="heat_index">Heat Index</button>
-    </div>
-    <div id="rank-extra"></div>
-    <div class="legend" id="legend" aria-label="Severity legend"></div>
-    <details><summary>Developer tools</summary>
-      <label class="chk"><input type="checkbox" id="synthetic"/> Synthetic heatwave simulation (not observed/forecast)</label>
-    </details>
-    <button class="btn" id="openProfile">Check my personal risk →</button>
-    <div class="foot" id="src" aria-live="polite">Loading data status…</div>
-  </section>
-
-  <div id="detail" class="card"></div>
-
-  <div id="timeline" aria-label="Event timeline">
-    <button id="tlbtn" aria-label="Play or pause timeline">▶</button>
-    <div id="tltrack" role="slider" aria-label="Date"></div>
-    <div id="tllabel" class="muted"></div>
-  </div>
 
   <div id="overlay"><div id="sheet" role="dialog" aria-modal="true" aria-label="Personal risk"></div></div>
 
@@ -113,7 +156,7 @@
     const KYIV_BBOX=[30.24,50.21,30.83,50.59];
 
     const S={level:"national",city:null,region:null,date:null,layer:"hazard",mode:"live",event:null};
-    let cityRegistry={}, availableDates=[], summaryData=null, footprintData=null, playing=false, playTimer=null;
+    let cityRegistry={}, availableDates=[], summaryData=null, footprintData=null, playing=false, playTimer=null, playbackRate=1;
     let historicalEvents=[], defaultEvent=null;
     const boundaryCache={}, riskCache={}, fpCache={};
     let fpAbort=null, riskAbort=null, natMarkers=[];
@@ -125,6 +168,10 @@
     map.addControl(new maplibregl.NavigationControl(),"top-right");
     map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:"Forecast © Open-Meteo · Climatology ERA5-Land · Boundaries © OSM(ODbL)/geoBoundaries"}));
     let mapReady=false, programmaticMove=false;
+    let resizeFrame=null;
+    function resizeMap(){cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>map.resize());}
+    if("ResizeObserver" in window)new ResizeObserver(resizeMap).observe(document.getElementById("map-region"));
+    window.addEventListener("resize",resizeMap,{passive:true});
 
     // ---- URL ----
     function writeURL(push){const q=new URLSearchParams();
@@ -139,7 +186,7 @@
 
     // ---- helpers ----
     const modeParam=()=>S.mode;   // live|historical|synthetic
-    function lvpill(l){return `<span class="lvpill" style="background:${COLORS[l]}">Level ${l} · ${LEVELS[l]}</span>`;}
+    function lvpill(l,compact=false){return `<span class="lvpill" style="background:${COLORS[l]}" title="Level ${l} · ${LEVELS[l]}">${compact?`L${l}`:`Level ${l} · ${LEVELS[l]}`}</span>`;}
     async function jget(url,signal){const r=await fetch(url,signal?{signal}:undefined); if(!r.ok)throw new Error(r.status); return r.json();}
 
     // =============== data status / banner ===============
@@ -176,7 +223,13 @@
       const ev=S.mode==="historical"?`&event_id=${S.event||""}`:"";
       // summary (headline, counts, available_dates)
       try{ summaryData=await jget(`${API}/api/heatwave-summary?date=${S.date}&mode=${modeParam()}${ev}`);
-        availableDates=summaryData.available_dates||[]; }catch(e){ summaryData=null; }
+        availableDates=summaryData.available_dates||[];
+        if(availableDates.length&&!availableDates.includes(S.date)){
+          S.date=availableDates[0]; writeURL(false);
+          summaryData=await jget(`${API}/api/heatwave-summary?date=${S.date}&mode=${modeParam()}${ev}`);
+          availableDates=summaryData.available_dates||availableDates;
+        }
+      }catch(e){ summaryData=null; }
       // footprint
       const fkey=`${modeParam()}|${S.date}|${S.event||""}`;
       if(fpAbort)fpAbort.abort(); fpAbort=new AbortController();
@@ -252,7 +305,7 @@
 
     // =============== state machine ===============
     function setState(patch,{push=false,fit=false}={}){Object.assign(S,patch);
-      S.level=S.region?"district":(S.city?"city":"national"); writeURL(push); apply({fit});}
+      S.level=S.region?"district":(S.city?"city":"national"); writeURL(push); return apply({fit});}
     async function apply({fit=false}={}){
       if(!S.date)S.date=(availableDates[0]||new Date().toISOString().slice(0,10));
       document.querySelectorAll("#modes button").forEach(x=>x.classList.toggle("active",x.dataset.m===S.mode));
@@ -276,7 +329,7 @@
     function renderModeExtra(){const el=document.getElementById("mode-extra");
       if(S.mode!=="historical"){el.innerHTML="";return;}
       const opts=historicalEvents.slice(0,20).map(e=>`<option value="${e.event_id}" ${e.event_id===S.event?"selected":""}>${e.start_date} → ${e.end_date} · L${e.maximum_severity_level} · ${e.duration_days}d · ${e.maximum_temperature}°C</option>`).join("");
-      el.innerHTML=`<label class="blk">Observed event (ERA5-Land)</label><select id="evsel" style="width:100%">${opts}</select>`;
+      el.innerHTML=`<label class="blk" for="evsel">Observed event (ERA5-Land)</label><select id="evsel" style="width:100%">${opts}</select>`;
       const sel=document.getElementById("evsel"); if(sel)sel.onchange=()=>selectEvent(sel.value);
     }
     function renderPanel(){
@@ -311,13 +364,13 @@
         const exc=p.value!=null?`Max ${p.value>0?"+":""}${p.value}°C vs TX95`:"";
         const tn=p.consecutive_tropical_nights?` · ${p.consecutive_tropical_nights} tropical night(s)`:"";
         row.setAttribute("aria-label",`${p.name_en}, Level ${l} ${LEVELS[l]}`);
-        row.innerHTML=`<div><div>${p.name_en}</div><div class="sub">${day}${exc?" · "+exc:""}${tn}</div></div>${lvpill(l)}`;
+        row.innerHTML=`<div><div>${p.name_en}</div><div class="sub">${exc||day}${exc&&day!=="—"?" · "+day:""}${tn}</div></div>${lvpill(l,true)}`;
         row.onclick=()=>onClick(p);row.onkeydown=e=>{if(e.key==="Enter")onClick(p);};box.appendChild(row);});}
     function fillRankDistricts(regs){const box=document.getElementById("ranklist");if(!box)return;box.innerHTML="";
       regs.forEach(r=>{const row=document.createElement("div");row.className="row"+(r.id===S.region?" sel":"");row.tabIndex=0;row.setAttribute("role","button");
         const l=r.severity_level||0;
         row.setAttribute("aria-label",`${r.name_en}, Level ${l} ${LEVELS[l]}`);
-        row.innerHTML=`<div><div>${r.name_en}</div><div class="sub">${r.pct_level2plus||0}% cells confirmed · max ${r.max_severity_label}</div></div>${lvpill(l)}`;
+        row.innerHTML=`<div><div>${r.name_en}</div><div class="sub">${r.pct_level2plus||0}% confirmed · peak L${r.max_severity_level??l}</div></div>${lvpill(l,true)}`;
         row.onclick=()=>userSelectRegion(r.id);row.onkeydown=e=>{if(e.key==="Enter")userSelectRegion(r.id);};box.appendChild(row);});}
     function renderLegend(){const L=document.getElementById("legend");
       L.innerHTML=[0,1,2,3,4].map(l=>`<div><i style="background:${COLORS[l]}"></i><b>${l}</b> ${LEVELS[l]}</div>`).join("")+
@@ -366,34 +419,42 @@
     }
 
     // =============== timeline ===============
-    function levelForDate(dt){ if(S.mode==="historical"&&summaryData&&summaryData.event){ return null; }
-      if(footprintData&&footprintData.features){ /* current date only */ } return null; }
-    function renderTimeline(){const track=document.getElementById("tltrack"),lab=document.getElementById("tllabel");
-      track.innerHTML=""; if(!availableDates.length){lab.textContent="";return;}
-      // per-date max level: use timeline from historical event detail, else compute from footprint only for current
-      const lvlByDate=window.__tlLevels||{};
-      availableDates.forEach(dt=>{const c=document.createElement("div");c.className="tlcell"+(dt===S.date?" sel":"");
-        const lv=lvlByDate[dt]; c.style.background=lv!=null?COLORS[lv]:"#d6dde2";
-        c.title=`${dt}${lv!=null?" · L"+lv:""}`; c.setAttribute("aria-label",dt);
-        c.onclick=()=>setState({date:dt},{push:false}); track.appendChild(c);});
-      const idx=availableDates.indexOf(S.date);
-      let ctx="";
+    function formatTimelineDate(dt){if(!dt)return "—";return new Intl.DateTimeFormat("en",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}).format(new Date(`${dt}T00:00:00Z`));}
+    function currentTimelineIndex(){const idx=availableDates.indexOf(S.date);return idx<0?0:idx;}
+    function syncPlayButton(){const button=document.getElementById("tlbtn"),timeline=document.getElementById("timeline");
+      button.textContent=playing?"⏸":"▶";button.setAttribute("aria-label",playing?"Pause timeline":"Play timeline");button.setAttribute("aria-pressed",String(playing));timeline.dataset.playing=String(playing);}
+    function stopPlayback(){playing=false;clearTimeout(playTimer);playTimer=null;syncPlayButton();}
+    function goToTimelineIndex(next,{pause=true}={}){if(!availableDates.length)return;if(pause)stopPlayback();
+      const idx=Math.max(0,Math.min(availableDates.length-1,next));setState({date:availableDates[idx]},{push:false});}
+    function renderTimeline(){const range=document.getElementById("tlrange"),markers=document.getElementById("tlmarkers"),current=document.getElementById("tlcurrent"),kind=document.getElementById("tlkind"),end=document.getElementById("tlend"),status=document.getElementById("tlstatus");
+      if(!availableDates.length){current.textContent="Unavailable";end.textContent="";status.textContent="No dates available";range.disabled=true;markers.innerHTML="";return;}
+      const idx=currentTimelineIndex(),last=availableDates.length-1,lvlByDate=window.__tlLevels||{},level=lvlByDate[S.date];
+      range.disabled=availableDates.length<2;range.max=String(last);range.value=String(idx);
+      range.style.setProperty("--progress",`${last?idx/last*100:0}%`);
+      const dateContext=S.mode==="historical"?"Observed":S.mode==="synthetic"?"Simulation":"Forecast";
+      range.setAttribute("aria-label",`${dateContext} date`);range.setAttribute("aria-valuetext",`${dateContext} ${formatTimelineDate(S.date)}${level!=null?`, heatwave level ${level}`:""}`);
+      document.getElementById("timeline").setAttribute("aria-label",`${dateContext} timeline`);
+      kind.textContent=`${dateContext} date`;current.textContent=formatTimelineDate(S.date);end.textContent=`${S.mode==="live"?"Forecast ends":"Ends"} ${formatTimelineDate(availableDates[last])}`;
+      markers.innerHTML=availableDates.map((dt,i)=>{const lv=lvlByDate[dt];if(lv==null)return "";const pos=last?i/last*100:0;return `<i class="tlmarker" style="left:${pos}%;background:${COLORS[lv]}" title="${dt} · Level ${lv}"></i>`;}).join("");
       if(S.mode==="historical"&&summaryData&&summaryData.event){const e=summaryData.event;
-        const day=availableDates.indexOf(S.date)+1; ctx=`Event ${e.start_date} · Day ${day} of ${e.duration_days}`;}
-      else ctx=`${S.date}`;
-      lab.textContent=`${ctx}`;
+        status.textContent=`ERA5-Land event ${e.start_date}–${e.end_date} · Day ${idx+1} of ${availableDates.length} · Level ${level??0} · ${e.duration_days} days · Maximum level ${e.maximum_severity_level}`;
+      }else if(S.mode==="live")status.textContent=`Forecast day ${idx+1} of ${availableDates.length}`;
+      else status.textContent=`Simulation day ${idx+1} of ${availableDates.length}${level!=null?` · Level ${level}`:""}`;
+      syncPlayButton();
     }
-    function togglePlay(){ playing=!playing; document.getElementById("tlbtn").textContent=playing?"⏸":"▶";
-      if(playing)step(); else clearTimeout(playTimer);}
-    function step(){ if(!playing)return; const idx=availableDates.indexOf(S.date);
-      if(idx>=availableDates.length-1){playing=false;document.getElementById("tlbtn").textContent="▶";return;}
-      setState({date:availableDates[idx+1]},{push:false});
-      playTimer=setTimeout(step,900);}
+    function togglePlay(){if(!availableDates.length)return;if(playing){stopPlayback();return;}
+      if(currentTimelineIndex()>=availableDates.length-1){stopPlayback();return;}
+      playing=true;syncPlayButton();step();}
+    async function step(){if(!playing)return;const idx=currentTimelineIndex();
+      if(idx>=availableDates.length-1){stopPlayback();return;}
+      await setState({date:availableDates[idx+1]},{push:false});
+      if(idx+1>=availableDates.length-1){stopPlayback();return;}
+      playTimer=setTimeout(step,900/playbackRate);}
 
     // =============== historical events ===============
     async function loadHistoricalEvents(){ try{const d=await jget(`${API}/api/historical-events?minimum_level=3&limit=25`);
       historicalEvents=d.events||[]; defaultEvent=d.default_event_id;}catch(e){historicalEvents=[];} }
-    async function selectEvent(eid){ let e=historicalEvents.find(x=>x.event_id===eid);
+    async function selectEvent(eid){ stopPlayback();let e=historicalEvents.find(x=>x.event_id===eid);
       let start=e?e.start_date:null;
       try{const det=await jget(`${API}/api/historical-event/${eid}`);
         window.__tlLevels={}; det.timeline.forEach(t=>window.__tlLevels[t.date]=t.max_level);
@@ -414,14 +475,31 @@
       else if(S.city&&z<7.2){document.getElementById("detail").style.display="none";setState({city:null,region:null},{push:true,fit:false});}});
 
     // =============== controls ===============
-    document.querySelectorAll("#modes button").forEach(b=>b.onclick=async()=>{
+    document.querySelectorAll("#modes button").forEach(b=>b.onclick=async()=>{stopPlayback();
       if(b.dataset.m==="historical"){ if(!historicalEvents.length)await loadHistoricalEvents();
         const eid=S.event||defaultEvent; if(eid){await selectEvent(eid);return;} }
-      window.__tlLevels=null; setState({mode:b.dataset.m,event:b.dataset.m==="historical"?(S.event||defaultEvent):null},{push:true});});
-    document.getElementById("synthetic").onchange=(e)=>{ Object.keys(fpCache).forEach(k=>delete fpCache[k]); Object.keys(riskCache).forEach(k=>delete riskCache[k]);
-      setState({mode:e.target.checked?"synthetic":"live",event:null},{push:true});};
+      window.__tlLevels=null; setState({mode:b.dataset.m,event:b.dataset.m==="historical"?(S.event||defaultEvent):null,date:new Date().toISOString().slice(0,10)},{push:true});});
+    document.getElementById("synthetic").onchange=(e)=>{ stopPlayback();Object.keys(fpCache).forEach(k=>delete fpCache[k]); Object.keys(riskCache).forEach(k=>delete riskCache[k]);
+      setState({mode:e.target.checked?"synthetic":"live",event:null,date:new Date().toISOString().slice(0,10)},{push:true});};
     document.querySelectorAll("#layers button").forEach(b=>b.onclick=()=>setState({layer:b.dataset.l},{push:false}));
     document.getElementById("tlbtn").onclick=togglePlay;
+    document.getElementById("tlprev").onclick=()=>goToTimelineIndex(currentTimelineIndex()-1);
+    document.getElementById("tlnext").onclick=()=>goToTimelineIndex(currentTimelineIndex()+1);
+    const tlrange=document.getElementById("tlrange");
+    tlrange.addEventListener("pointerdown",stopPlayback);tlrange.addEventListener("touchstart",stopPlayback,{passive:true});
+    tlrange.addEventListener("input",e=>goToTimelineIndex(Number(e.target.value)));
+    document.getElementById("tlspeed").onchange=e=>{playbackRate=Number(e.target.value)||1;if(playing){clearTimeout(playTimer);playTimer=setTimeout(step,900/playbackRate);}};
+    document.getElementById("timeline").addEventListener("keydown",e=>{
+      if(e.target.matches("select")||!e.target.matches("button,input[type=range]"))return;
+      let handled=true;
+      if(e.code==="Space"||e.key===" ")togglePlay();
+      else if(e.key==="ArrowLeft")goToTimelineIndex(currentTimelineIndex()-1);
+      else if(e.key==="ArrowRight")goToTimelineIndex(currentTimelineIndex()+1);
+      else if(e.key==="Home")goToTimelineIndex(0);
+      else if(e.key==="End")goToTimelineIndex(availableDates.length-1);
+      else handled=false;
+      if(handled)e.preventDefault();
+    });
     let sTimer; const sb=document.getElementById("search"),sr=document.getElementById("searchResults");
     sb.oninput=(e)=>{clearTimeout(sTimer);const q=e.target.value.trim();if(!q){sr.innerHTML="";sb.setAttribute("aria-expanded","false");return;}
       sTimer=setTimeout(async()=>{const d=await jget(`${API}/api/cities?q=${encodeURIComponent(q)}`);sr.innerHTML="";sb.setAttribute("aria-expanded",d.cities.length?"true":"false");
@@ -430,7 +508,7 @@
           const go=()=>{sr.innerHTML="";sb.setAttribute("aria-expanded","false");sb.value=c.name_en;if(has)userActivateCity(c.id);else{flyTo(c.lat,c.lon,9);toast(`District-level detail is not yet available for ${c.name_en}.`);}};
           row.onclick=go;row.onkeydown=ev=>{if(ev.key==="Enter")go();};sr.appendChild(row);});},300);};
     function toast(m){const s=document.getElementById("src");s.textContent=m;setTimeout(loadStatus,4000);}
-    window.addEventListener("popstate",()=>{readURL();apply({fit:true});});
+    window.addEventListener("popstate",()=>{stopPlayback();readURL();apply({fit:true});});
 
     // =============== personal risk (context-aware) ===============
     const PKEY="waves_profile_v1";
@@ -502,9 +580,11 @@
       if(S.mode==="historical"){ await loadHistoricalEvents(); if(!S.event)S.event=defaultEvent;
         if(S.event){try{const det=await jget(`${API}/api/historical-event/${S.event}`);window.__tlLevels={};det.timeline.forEach(t=>window.__tlLevels[t.date]=t.max_level);availableDates=det.dates;if(!S.date)S.date=det.dates[0];}catch(e){}} }
       mapReady=true;
-      window.__waves={getState:()=>({...S}),regions:()=>(window.__regions||[]),ready:true,
-        mapCount:()=>document.querySelectorAll(".maplibregl-canvas").length,summary:()=>summaryData};
+      window.__waves={getState:()=>({...S}),regions:()=>(window.__regions||[]),ready:false,
+        mapCount:()=>document.querySelectorAll(".maplibregl-canvas").length,summary:()=>summaryData,
+        footprintDate:()=>footprintData&&footprintData.date,isPlaying:()=>playing,dates:()=>availableDates.slice()};
       await apply({fit:!!S.city});
+      window.__waves.ready=true;
     });
   })();
   </script>

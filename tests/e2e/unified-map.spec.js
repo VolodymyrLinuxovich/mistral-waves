@@ -11,12 +11,22 @@ const SYN = APP + "?mode=synthetic";
 async function boot(page, url = APP) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
   await page.goto(url);
   await page.waitForFunction(() => window.__waves && window.__waves.ready, null, { timeout: 30000 });
   return errors;
 }
 const state = (p) => p.evaluate(() => window.__waves.getState());
 const mapCount = (p) => p.evaluate(() => window.__waves.mapCount());
+
+async function scrubTimeline(page, index) {
+  await page.locator("#tlrange").evaluate((range, value) => {
+    range.value = String(value);
+    range.dispatchEvent(new Event("input", { bubbles: true }));
+  }, index);
+}
 
 async function activateKyiv(page) {
   await page.fill("#search", "Kyiv");
@@ -48,21 +58,72 @@ test("historical replay: real ERA5 event, one map, timeline", async ({ page }) =
   expect(await mapCount(page)).toBe(1);
   await expect(page.locator("#banner")).toContainText("HISTORICAL");
   await expect(page.locator("#headline")).toContainText("Observed heatwave");
-  const cells = await page.$$eval(".tlcell", (c) => c.length);
-  expect(cells).toBeGreaterThan(3);
+  const frames = await page.locator("#tlrange").getAttribute("max");
+  expect(Number(frames)).toBeGreaterThan(3);
+  await expect(page.locator("#tlstatus")).toContainText(/Day 1 of \d+ · Level \d/);
+  await expect(page.locator("#tlstatus")).toContainText(/Maximum level/);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(SHOTS, "historical-desktop.png") });
 });
 
-test("timeline playback advances the date without recreating the map", async ({ page }) => {
+test("timeline play, pause, and final-frame stop keep one map", async ({ page }) => {
   await boot(page, HIST);
   const before = await state(page);
   const m0 = await mapCount(page);
-  await page.click("#tlbtn");                       // play
+  await page.click("#tlbtn");
   await page.waitForFunction((d0) => window.__waves.getState().date !== d0,
     before.date, { timeout: 10000 });
-  await page.click("#tlbtn");                       // pause
+  await page.click("#tlbtn");
+  const paused = (await state(page)).date;
+  await page.waitForTimeout(1200);
+  expect((await state(page)).date).toBe(paused);
+  expect(await page.locator("#tlbtn").getAttribute("aria-pressed")).toBe("false");
+
+  await page.selectOption("#tlspeed", "2");
+  await page.locator("#tlrange").focus();
+  await page.keyboard.press("Home");
+  await page.click("#tlbtn");
+  await page.waitForFunction(() => {
+    const w = window.__waves;
+    const dates = w.dates();
+    return !w.isPlaying() && w.getState().date === dates[dates.length - 1];
+  }, null, { timeout: 30000 });
   expect(await mapCount(page)).toBe(m0);
+});
+
+test("timeline slider, previous, and next synchronize date, URL, and map data", async ({ page }) => {
+  await boot(page, HIST);
+  const dates = await page.evaluate(() => window.__waves.dates());
+  const target = Math.min(4, dates.length - 1);
+  await scrubTimeline(page, target);
+  await page.waitForFunction((date) => window.__waves.footprintDate() === date, dates[target]);
+  expect((await state(page)).date).toBe(dates[target]);
+  expect(page.url()).toContain(`date=${dates[target]}`);
+  await expect(page.locator("#tlrange")).toHaveAttribute("aria-valuetext", new RegExp(dates[target].slice(0, 4)));
+
+  await page.click("#tlprev");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates[target - 1]);
+  await page.click("#tlnext");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates[target]);
+});
+
+test("timeline keyboard supports arrows, Home, End, and Space", async ({ page }) => {
+  await boot(page, HIST);
+  const dates = await page.evaluate(() => window.__waves.dates());
+  const range = page.locator("#tlrange");
+  await range.focus();
+  await page.keyboard.press("End");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates.at(-1));
+  await page.keyboard.press("Home");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates[0]);
+  await page.keyboard.press("ArrowRight");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates[1]);
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForFunction((date) => window.__waves.getState().date === date, dates[0]);
+  await page.keyboard.press("Space");
+  await expect(page.locator("#tlbtn")).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Space");
+  await expect(page.locator("#tlbtn")).toHaveAttribute("aria-pressed", "false");
 });
 
 test("synthetic mode is clearly labelled synthetic", async ({ page }) => {
@@ -76,8 +137,8 @@ test("synthetic mode is clearly labelled synthetic", async ({ page }) => {
 test("synthetic mode: confirmed footprint headline on a heatwave day", async ({ page }) => {
   await boot(page, SYN);
   // the synthetic heatwave peaks on days 3-6; step the timeline into it
-  await page.waitForSelector(".tlcell");
-  await page.$$eval(".tlcell", (cells) => cells[4] && cells[4].click());
+  await page.waitForSelector("#tlrange");
+  await scrubTimeline(page, 4);
   await page.waitForFunction(() => window.__waves.summary() && window.__waves.summary().status === "confirmed",
     null, { timeout: 30000 });
   await expect(page.locator("#headline")).toContainText(/confirmed heatwave footprint/i);
@@ -111,6 +172,17 @@ test("mode selector switches live <-> historical, URL persists", async ({ page }
   expect(page.url()).toContain("mode=historical");
 });
 
+test("switching historical events resets to the selected event first frame", async ({ page }) => {
+  await boot(page, HIST);
+  await page.waitForFunction(() => document.querySelectorAll("#evsel option").length > 1);
+  const nextEvent = await page.locator("#evsel option").nth(1).getAttribute("value");
+  await page.selectOption("#evsel", nextEvent);
+  await page.waitForFunction((eventId) => window.__waves.getState().event === eventId, nextEvent);
+  await page.waitForFunction(() => window.__waves.getState().date === window.__waves.dates()[0]);
+  expect((await state(page)).event).toBe(nextEvent);
+  await expect(page.locator("#tlstatus")).toContainText("Day 1 of");
+});
+
 test("live mode loads and reports an honest state", async ({ page }) => {
   await boot(page, APP);
   expect((await state(page)).mode).toBe("live");
@@ -132,13 +204,73 @@ test("browser back/forward across modes", async ({ page }) => {
   expect(await mapCount(page)).toBe(1);
 });
 
-test("mobile: timeline + legend visible, historical replay", async ({ page }) => {
+test("desktop 1200x700: constrained shell, independent sidebar, complete timeline", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 700 });
+  const errors = await boot(page, HIST);
+  await page.waitForTimeout(1000);
+  const layout = await page.evaluate(() => {
+    const rect = (id) => document.getElementById(id).getBoundingClientRect();
+    const panel = rect("panel"), map = rect("map-region"), timeline = rect("timeline"), footer = rect("disclaimer");
+    return {
+      bodyScrollWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.documentElement.clientWidth,
+      bodyScrollHeight: document.documentElement.scrollHeight,
+      bodyHeight: document.documentElement.clientHeight,
+      panel, map, timeline, footer,
+      panelScrollable: document.getElementById("panel").scrollHeight >= document.getElementById("panel").clientHeight,
+    };
+  });
+  expect(layout.bodyScrollWidth).toBe(layout.bodyWidth);
+  expect(layout.bodyScrollHeight).toBe(layout.bodyHeight);
+  expect(layout.timeline.x).toBeGreaterThanOrEqual(layout.map.x);
+  expect(layout.timeline.right).toBeLessThanOrEqual(layout.map.right);
+  expect(layout.timeline.bottom).toBeLessThanOrEqual(layout.map.bottom);
+  expect(layout.panel.right).toBeLessThanOrEqual(layout.map.x + 1);
+  expect(layout.panelScrollable).toBe(true);
+  await page.screenshot({ path: path.join(SHOTS, "polished-desktop-1200x700.png") });
+
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await page.waitForTimeout(300);
+  const wide = await page.evaluate(() => {
+    const box = (node) => {
+      const r = node.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+    };
+    return { pageWidth: document.documentElement.scrollWidth, viewportWidth: innerWidth, map: box(document.getElementById("map-region")), timeline: box(document.getElementById("timeline")), canvas: box(document.querySelector(".maplibregl-canvas")) };
+  });
+  expect(wide.pageWidth).toBe(wide.viewportWidth);
+  expect(wide.timeline.left).toBeGreaterThanOrEqual(wide.map.left);
+  expect(wide.timeline.right).toBeLessThanOrEqual(wide.map.right);
+  expect(Math.abs(wide.canvas.width - wide.map.width)).toBeLessThan(1);
+  expect(Math.abs(wide.canvas.height - wide.map.height)).toBeLessThan(1);
+  await page.screenshot({ path: path.join(SHOTS, "polished-desktop-1440x800.png") });
+  expect(errors).toEqual([]);
+});
+
+test("mobile: bottom sheet, timeline, legend, and touch controls remain reachable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await boot(page, HIST);
-  await page.waitForTimeout(2000);
+  const errors = await boot(page, HIST);
+  await page.waitForTimeout(1000);
   await expect(page.locator("#timeline")).toBeVisible();
   await expect(page.locator("#legend")).toBeVisible();
-  await page.screenshot({ path: path.join(SHOTS, "historical-mobile.png") });
+  await expect(page.locator("#tlcurrent")).not.toBeEmpty();
+  const sizes = await page.$$eval(".tlbutton", (buttons) => buttons.map((button) => {
+    const r = button.getBoundingClientRect(); return [r.width, r.height];
+  }));
+  sizes.forEach(([width, height]) => { expect(width).toBeGreaterThanOrEqual(44); expect(height).toBeGreaterThanOrEqual(44); });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.locator("#panel").evaluate((panel) => { panel.scrollTop = panel.scrollHeight; });
+  await expect(page.locator("#src")).toBeInViewport();
+  await expect(page.locator("#openProfile")).toBeInViewport();
+  await page.locator("#panel").evaluate((panel) => { panel.scrollTop = 0; });
+  await page.screenshot({ path: path.join(SHOTS, "polished-mobile-390x844.png") });
+  expect(errors).toEqual([]);
+});
+
+test("historical replay has no browser console errors", async ({ page }) => {
+  const errors = await boot(page, HIST);
+  await page.waitForTimeout(1500);
+  expect(errors).toEqual([]);
 });
 
 test("API failure degrades without crashing", async ({ page }) => {
