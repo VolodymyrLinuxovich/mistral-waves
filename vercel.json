@@ -3,11 +3,8 @@
   "redirects": [
     { "source": "/", "destination": "/index.html", "permanent": false }
   ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
-  ],
   "functions": {
-    "api/index.py": {
+    "api/[...path].py": {
       "maxDuration": 30,
       "includeFiles": "{backend/**,config/**,data/processed/*.npz,data/processed/*.json,data/processed/historical_footprints/**,data/demo/**,data/boundaries/kyiv_districts.*}"
     }
