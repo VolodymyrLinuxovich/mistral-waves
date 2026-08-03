@@ -336,3 +336,14 @@ def cities(q: str = Query("", description="search query (en/uk)")):
         {"id": c.id, "name_en": c.name_en, "name_uk": c.name_uk,
          "lat": c.lat, "lon": c.lon, "oblast_en": c.oblast_en}
         for c in matches]}
+
+
+# --- Static frontend (Vercel single-function serving) ------------------------
+# When WAVES_PUBLIC_DIR is set (serverless), serve the built `public/` dir for
+# all non-/api paths. Mounted LAST so /api/* routes take precedence. Local dev
+# uses a separate static server, so this stays inert unless the env var is set.
+import os as _os  # noqa: E402
+_pub = _os.environ.get("WAVES_PUBLIC_DIR")
+if _pub and _os.path.isdir(_pub):
+    from fastapi.staticfiles import StaticFiles  # noqa: E402
+    app.mount("/", StaticFiles(directory=_pub, html=True), name="static")

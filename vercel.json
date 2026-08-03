@@ -1,12 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "redirects": [
-    { "source": "/", "destination": "/index.html", "permanent": false }
-  ],
   "functions": {
-    "api/[...path].py": {
+    "api/index.py": {
       "maxDuration": 30,
-      "includeFiles": "{backend/**,config/**,data/processed/*.npz,data/processed/*.json,data/processed/historical_footprints/**,data/demo/**,data/boundaries/kyiv_districts.*}"
+      "includeFiles": "{backend/**,config/**,public/**,data/processed/*.npz,data/processed/*.json,data/processed/historical_footprints/**,data/demo/**,data/boundaries/kyiv_districts.*}"
     }
   }
 }
