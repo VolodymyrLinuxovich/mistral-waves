@@ -28,7 +28,25 @@ Version 0.1.0 (2026-07-23, Day 1).
 - Deterministic rule engine, **not** a validated clinical model and **not** a
   probability. It cannot predict an individual heart attack, stroke, or death.
 
+## Historical replay caveats
+- Event detection uses relative percentile exceedance + a 25 °C warm-season
+  floor. In **shoulder seasons (April–May)** low local percentiles plus the
+  floor can flag long early-season warm spells as high-severity events; these
+  are real warm anomalies (early-season heat is a genuine health risk for an
+  unacclimatised population) but their "extreme/40-day" framing overstates them.
+  Events are ranked by intensity (max temperature) so genuine summer heatwaves
+  lead. The catalogue's top events are real (e.g. the 2007, 2010, 2017 summer
+  heatwaves). A summer-month gate is a documented future refinement.
+- Historical severity uses the current provisional baseline and is recomputed
+  when the full 1991–2020 climatology is promoted.
+
 ## Provisional climatology (current state)
+Baseline currently spans **29 of 30 years** (1991–2020 except **1997**, whose
+Tmin download failed and is being retried). This is a near-complete climatology
+but still labelled `provisional` until all 60 files validate; the
+`*_1991_2020.*` / `baseline_status: complete` promotion happens only then.
+
+### Earlier state note
 The served thresholds are computed from a **single year (2020)** of ERA5-Land
 while the full 1991–2020 download runs. This is exposed everywhere as
 `baseline_status: provisional`, `baseline_years: [2020]`,

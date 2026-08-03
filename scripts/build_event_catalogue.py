@@ -166,9 +166,14 @@ def main() -> int:
                 "data_resolution": "~1.0deg analysis grid (downsampled from ERA5-Land ~9km)",
                 "algorithm_version": ALGORITHM_VERSION,
             }
+            meta["has_footprint"] = max_level >= 3
             catalogue.append(meta)
-            (FP_DIR / f"{eid}.json").write_text(json.dumps(
-                {"event": meta, "dates": dates[i:j + 1], "footprints": foot}))
+            # Only write per-event daily footprint files for significant (severe/
+            # extreme) events — those are the selectable replay events; keeps the
+            # deploy bundle lean across ~29 years of data.
+            if max_level >= 3:
+                (FP_DIR / f"{eid}.json").write_text(json.dumps(
+                    {"event": meta, "dates": dates[i:j + 1], "footprints": foot}))
             i = j + 1
 
     catalogue.sort(key=lambda e: (e["maximum_severity_level"], e["duration_days"],

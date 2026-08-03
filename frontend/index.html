@@ -391,7 +391,7 @@
       playTimer=setTimeout(step,900);}
 
     // =============== historical events ===============
-    async function loadHistoricalEvents(){ try{const d=await jget(`${API}/api/historical-events?minimum_level=2&limit=20`);
+    async function loadHistoricalEvents(){ try{const d=await jget(`${API}/api/historical-events?minimum_level=3&limit=25`);
       historicalEvents=d.events||[]; defaultEvent=d.default_event_id;}catch(e){historicalEvents=[];} }
     async function selectEvent(eid){ let e=historicalEvents.find(x=>x.event_id===eid);
       let start=e?e.start_date:null;
