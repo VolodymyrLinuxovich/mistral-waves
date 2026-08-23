@@ -69,6 +69,7 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.chk{font-size:13px;display:flex;align-items:center;gap:6px}
     .emerg{background:#c0161c;color:#fff;padding:14px 16px;border-radius:10px}.emerg b{font-size:17px}
     .reason{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}.close{float:right;cursor:pointer;color:#5c6b78;font-size:15px}
+    .mistral-cta{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.mistral-row{display:flex;align-items:end;gap:8px}.mistral-row label{flex:0 0 145px}.mistral-row .btn{flex:1;width:auto;margin-top:0;background:#e2681c}.mistral-row .btn:disabled{cursor:wait;opacity:.7}.mistral-plan{margin-top:12px;padding:12px;border:1px solid #efc29f;border-radius:10px;background:#fff8f2}.mistral-plan h2{font-size:15px;margin:0 0 2px}.mistral-plan h3{font-size:12px;margin:11px 0 2px;text-transform:uppercase;letter-spacing:.03em}.mistral-plan ul{margin:4px 0 0;padding-left:20px}.mistral-plan li{font-size:13px;margin:4px 0}.check-in{font-size:13px;padding:9px;border-radius:8px;background:#fff;border:1px solid var(--line);white-space:pre-wrap}.copy-btn{width:auto;margin-top:6px;padding:6px 10px}.mistral-error{margin-top:10px;padding:9px;border-radius:8px;background:#fff4e8;color:#8a4b00;font-size:12px}.family-checkin{margin-top:12px;padding-top:10px;border-top:1px solid #efc29f}.sms-btn{background:#245d85!important}.checkin-card{margin-top:9px;padding:11px;border-radius:9px;font-size:13px;font-weight:650}.checkin-card.pending{background:#eef2f5;color:#44515d}.checkin-card.ok{background:#e4f4e9;color:#155e2e}.checkin-card.help{background:#fde8e7;color:#9f1d16}.checkin-card.error{background:#fff4e8;color:#8a4b00}
     #detail{display:none;position:absolute;bottom:118px;right:12px;z-index:5;width:min(340px,94vw);max-height:52%;overflow:auto;padding:12px 14px}
     @media(max-width:900px) and (min-width:641px){#workspace{grid-template-columns:minmax(280px,310px) minmax(0,1fr)}#timeline{grid-template-columns:auto minmax(100px,auto) minmax(120px,1fr) auto;grid-template-areas:"buttons current range speed" "buttons status end speed"}#tlend{text-align:right}}
     @media(max-width:640px){
@@ -160,6 +161,7 @@
     let historicalEvents=[], defaultEvent=null;
     const boundaryCache={}, riskCache={}, fpCache={};
     let fpAbort=null, riskAbort=null, natMarkers=[];
+    let cityRiskError=null, districtGeoJSON=null;
 
     // ---- map ----
     const style=C.MAPTILER_KEY?`https://api.maptiler.com/maps/dataviz/style.json?key=${C.MAPTILER_KEY}`
@@ -210,8 +212,9 @@
         map.addSource("oblast-boundaries",{type:"geojson",data:gj});
         map.addLayer({id:"oblast-line",type:"line",source:"oblast-boundaries",paint:{"line-color":"#8aa0b2","line-width":0.8,"line-opacity":0.7}});
       }catch(e){}}
+    function severityColorExpr(){return ["match",["get","severity_level"],0,COLORS[0],1,COLORS[1],2,COLORS[2],3,COLORS[3],4,COLORS[4],"#9aa7b1"];}
     function fpColorExpr(){
-      if(S.layer==="hazard") return ["match",["get","severity_level"],0,COLORS[0],1,COLORS[1],2,COLORS[2],3,COLORS[3],4,COLORS[4],"#9aa7b1"];
+      if(S.layer==="hazard") return severityColorExpr();
       if(S.layer==="nighttime") return ["case",["==",["get","tropical_night"],true],"#c0161c","#6b8fa8"];
       if(S.layer==="heat_index") return ["step",["coalesce",["get","tx95_exceedance"],-99],"#6b8fa8",0,"#f4c430",2,"#e8862e",4,"#c0161c"];
       const key=S.layer==="tx90_exceedance"?"tx90_exceedance":"tx95_exceedance";
@@ -271,10 +274,9 @@
     async function loadCityRegions(id){ if(boundaryCache[id])return boundaryCache[id];
       const r=await jget(`${API}/api/city-regions?city=${id}`); if(r.detail)throw new Error(r.detail);
       boundaryCache[id]={geojson:r.geojson,bbox:r.bbox,meta:r,resolution:r.resolution_note}; return boundaryCache[id];}
-    async function loadCityRisk(id){ const key=`${id}|${S.date}|${modeParam()}|${(window.__baseline||{}).baseline_status}`;
-      if(riskCache[key])return riskCache[key];
-      const d=await jget(`${API}/api/city-risk-map?city=${id}&date=${S.date}&layer=hazard&scenario=${S.mode==="synthetic"?"heatwave":""}`);
-      riskCache[key]=d.regions; window.__cityMeta=d; return d.regions;}
+    async function loadCityRisk(id,on){ const key=`${id}|${on}|${modeParam()}|${(window.__baseline||{}).baseline_status}`;
+      const d=riskCache[key]||await jget(`${API}/api/city-risk-map?city=${id}&date=${on}&layer=hazard&scenario=${S.mode==="synthetic"?"heatwave":""}`);
+      riskCache[key]=d; return d;}
     async function ensureCityLayers(id){ const b=await loadCityRegions(id);
       if(!map.getSource("kyiv-district-boundaries")){
         map.addSource("kyiv-district-boundaries",{type:"geojson",data:b.geojson});
@@ -286,14 +288,22 @@
         map.on("mouseleave","kyiv-district-risk",()=>map.getCanvas().style.cursor="");
       } else map.getSource("kyiv-district-boundaries").setData(b.geojson);
       return b;}
-    async function renderCity(id,{fit}){
+    function districtRiskData(boundaries,regions){const byId=new Map(regions.map(r=>[r.id,r]));
+      return {...boundaries,features:boundaries.features.map(f=>{const r=byId.get(f.properties.id),level=r?.severity_level;
+        return {...f,properties:{...f.properties,severity_level:level,severity_color:Number.isInteger(level)?COLORS[level]:null,forecast_status:r&&!r.error?"loaded":"unavailable"}};})};}
+    async function renderCity(id,{fit,date:selectedDate}){
       let b; try{b=await ensureCityLayers(id);}catch(e){deactivateCity();return;}
-      let regions; try{regions=await loadCityRisk(id);}catch(e){if(e.name==="AbortError")return;regions=[];}
-      window.__regions=regions;
-      const expr=["match",["get","id"]]; regions.forEach(r=>expr.push(r.id, r.error?"#9aa7b1":COLORS[r.severity_level||0])); expr.push("#9aa7b1");
-      map.setPaintProperty("kyiv-district-risk","fill-color",expr);
-      map.setPaintProperty("kyiv-district-risk","fill-opacity",0.55);
-      map.setPaintProperty("kyiv-district-line","line-opacity",0.9);
+      let data; try{data=await loadCityRisk(id,selectedDate);}catch(e){if(e.name==="AbortError")return;cityRiskError=e;data=null;}
+      if(selectedDate!==S.date||id!==S.city)return;
+      const regions=(data?.regions||[]).filter(r=>!r.error);
+      if(!regions.length){cityRiskError=cityRiskError||new Error("district forecast unavailable");window.__cityMeta=null;window.__regions=[];districtGeoJSON=null;
+        map.setPaintProperty("kyiv-district-risk","fill-opacity",0);map.setPaintProperty("kyiv-district-line","line-opacity",0);
+        document.getElementById("detail").style.display="none";
+      }else{cityRiskError=null;window.__cityMeta=data;window.__regions=regions;
+        districtGeoJSON=districtRiskData(b.geojson,regions);map.getSource("kyiv-district-boundaries").setData(districtGeoJSON);
+        map.setPaintProperty("kyiv-district-risk","fill-color",severityColorExpr());
+        map.setPaintProperty("kyiv-district-risk","fill-opacity",0.55);
+        map.setPaintProperty("kyiv-district-line","line-opacity",0.9);}
       setNationalMarkersVisible(false);              // keep national grid beneath at low opacity
       if(fit&&b.bbox){programmaticMove=true;map.fitBounds([[b.bbox[0],b.bbox[1]],[b.bbox[2],b.bbox[3]]],{padding:50,duration:800});}
       renderPanel(); if(S.region)highlightRegion(S.region);
@@ -313,7 +323,7 @@
       document.getElementById("synthetic").checked=(S.mode==="synthetic");
       renderBanner(); renderCrumbs(); renderModeExtra();
       await loadNational({});
-      if(S.city&&cityRegistry[S.city]&&cityRegistry[S.city].has_regions){ await renderCity(S.city,{fit}); }
+      if(S.city&&cityRegistry[S.city]&&cityRegistry[S.city].has_regions){ const selectedDate=S.date;await renderCity(S.city,{fit,date:selectedDate}); }
       else { deactivateCity(); if(S.city&&fit){const c=cityRegistry[S.city];if(c)flyTo(c.center[0],c.center[1],9);} renderPanel(); }
     }
 
@@ -336,7 +346,8 @@
       const body=document.getElementById("panel-body"), rank=document.getElementById("rank-extra"), hl=document.getElementById("headline");
       renderLegend();
       // headline (no-event / watch / confirmed)
-      if(summaryData){ const st=summaryData.status;
+      if(S.level!=="national"&&cityRiskError){hl.style.background="#f6ddd6";hl.textContent="Forecast data could not be loaded.";}
+      else if(summaryData){ const st=summaryData.status;
         hl.style.background = st==="no_event"?"#e8f0f4":st==="watch"?"#fbf2d6":"#f6ddd6";
         hl.innerHTML=`<b>${summaryData.headline}</b>`+
           `<span class="muted">Levels — watch ${summaryData.counts_by_level?.["1"]||0}, confirmed ${summaryData.counts_by_level?.["2"]||0}, severe ${summaryData.counts_by_level?.["3"]||0}, extreme ${summaryData.counts_by_level?.["4"]||0}</span>`;
@@ -347,6 +358,7 @@
         if(S.mode==="historical"){ rank.innerHTML=`<div class="muted" style="margin-top:8px">Observed footprint for ${S.date}. Use the timeline to replay the event.</div>`; }
         else { rank.innerHTML=`<label class="blk">${(window.__natRank||[]).some(p=>p.severity_level>=2)?"Highest hazard":"Heatwave watch"} on ${S.date}</label><div class="list" id="ranklist"></div>`;
           fillRank(r,(p)=>{if(cityRegistry[p.city]&&cityRegistry[p.city].has_regions)userActivateCity(p.city);else{flyTo(p.lat,p.lon,9);cellPopupCity(p);}}); }
+      } else if(cityRiskError){body.innerHTML="";rank.innerHTML="";document.getElementById("detail").style.display="none";
       } else {
         const meta=window.__cityMeta||{}, cn=cityRegistry[S.city]?cityRegistry[S.city].name_en:S.city;
         body.innerHTML=`<h1>${cn}</h1><div class="muted">Districts · ${meta.total_cells_sampled||0} forecast cells sampled</div><div class="warnrow">${meta.resolution_note||"District-level estimated heat distribution. Forecast resolution does not represent street-level temperature."}</div>`;
@@ -465,13 +477,13 @@
 
     // =============== navigation ===============
     function flyTo(lat,lon,z){programmaticMove=true;map.flyTo({center:[lon,lat],zoom:z,duration:800});}
-    function userActivateCity(id){setState({city:id,region:null},{push:true,fit:true});}
+    function userActivateCity(id,{fit=true}={}){const selectedDate=S.date;stopPlayback();setState({city:id,region:null,date:selectedDate},{push:true,fit});}
     function goNational(){programmaticMove=true;map.flyTo({center:[31.2,48.8],zoom:5,duration:800});document.getElementById("detail").style.display="none";setState({city:null,region:null},{push:true});}
     function userSelectRegion(id){document.getElementById("detail").style.display="block";setState({region:id},{push:true});}
     map.on("moveend",()=>{if(!mapReady)return;if(programmaticMove){programmaticMove=false;return;}
       const z=map.getZoom(),c=map.getCenter();
       const inK=c.lng>=KYIV_BBOX[0]&&c.lng<=KYIV_BBOX[2]&&c.lat>=KYIV_BBOX[1]&&c.lat<=KYIV_BBOX[3];
-      if(S.level==="national"&&z>=8.3&&inK&&cityRegistry.kyiv&&cityRegistry.kyiv.has_regions)setState({city:"kyiv",region:null},{push:true,fit:false});
+      if(S.level==="national"&&z>=8.3&&inK&&cityRegistry.kyiv&&cityRegistry.kyiv.has_regions)userActivateCity("kyiv",{fit:false});
       else if(S.city&&z<7.2){document.getElementById("detail").style.display="none";setState({city:null,region:null},{push:true,fit:false});}});
 
     // =============== controls ===============
@@ -515,7 +527,7 @@
     const lp=()=>{try{return JSON.parse(localStorage.getItem(PKEY))||{}}catch{return{}}};
     const spf=(p)=>localStorage.setItem(PKEY,JSON.stringify(p));
     const g=(id)=>{const el=document.getElementById(id);return el?el.checked:false;};
-    let profileCtx=null;
+    let profileCtx=null,lastRiskResult=null,lastRiskContext=null,lastCheckInMessage="",lastActionPlan=null,lastActionPlanLanguage="en",checkinPollTimer=null;
     window.__cityProfile=(rid)=>{const r=(window.__regions||[]).find(x=>x.id===rid);if(!r)return;
       profileCtx={label:`${r.name_en}, ${cityRegistry[S.city].name_en} — district-level estimate`,
         env:{exceeds_tx90:(r.tmax_minus_tx90??-9)>0,exceeds_tx95:(r.tmax_minus_tx95??-9)>0,exceeds_tx99:(r.tmax_max!=null&&r.tx99!=null&&r.tmax_max>r.tx99),
@@ -551,7 +563,8 @@
         <button class="btn" onclick="window.__submitProfile()">See my explained risk →</button>
         <button class="btn sec" onclick="window.__closeOverlay()">Cancel</button>
         <div class="foot">Not a medical diagnosis. Emergency symptoms always trigger an urgent warning.</div>`;};
-    window.__closeOverlay=()=>document.getElementById("overlay").style.display="none";
+    function stopCheckinPoll(){if(checkinPollTimer){clearInterval(checkinPollTimer);checkinPollTimer=null;}}
+    window.__closeOverlay=()=>{stopCheckinPoll();document.getElementById("overlay").style.display="none";};
     window.__submitProfile=async function(){const ctx=currentCtx();
       const profile={vulnerability:{age_band:document.getElementById("age").value||null,pregnancy:g("v_preg"),cardiovascular:g("v_cvd"),heart_failure:g("v_hf"),hypertension:g("v_htn"),ckd:g("v_ckd"),diabetes:g("v_dia"),chronic_respiratory:g("v_resp"),thermoregulation_medication:g("v_med"),fluid_restriction:g("v_fluid"),limited_mobility:g("v_mob"),living_alone:g("v_alone")},
         exposure:{outdoor_work:g("e_work"),intense_outdoor_sport:g("e_sport"),direct_sun:g("e_sun"),hot_transport:g("e_transport"),top_floor_or_overheated_home:g("e_top"),nighttime_exposure:g("e_night"),hours_outside:g("e_work")?8:1},
@@ -562,7 +575,8 @@
       let d;try{d=await (await fetch(`${API}/api/profile-risk?scenario=${S.mode==="synthetic"?"heatwave":""}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(profile)})).json();}
       catch(err){document.getElementById("sheet").innerHTML=`<span class="close" onclick="window.__closeOverlay()">✕</span><p>Could not reach the risk service.</p>`;return;}
       renderResult(d,ctx.label);};
-    function renderResult(d,ctxLabel){const sheet=document.getElementById("sheet");let h=`<span class="close" onclick="window.__closeOverlay()">✕</span><div class="muted" style="margin-bottom:6px">Environmental context: <b>${ctxLabel}</b></div>`;
+    const esc=(value)=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+    function renderResult(d,ctxLabel){stopCheckinPoll();lastActionPlan=null;lastRiskResult=d;lastRiskContext=ctxLabel;const sheet=document.getElementById("sheet");let h=`<span class="close" onclick="window.__closeOverlay()">✕</span><div class="muted" style="margin-bottom:6px">Environmental context: <b>${ctxLabel}</b></div>`;
       if(d.emergency&&d.emergency.active){h+=`<div class="emerg"><b>⚠ EMERGENCY — call 103</b><p>${d.emergency.message_en}</p><div style="font-size:12px">Reported: ${d.emergency.symptoms.join(", ").replace(/_/g," ")}</div></div>`;}
       else{h+=`<h1 style="font-size:16px">Your heat-risk: <span class="lvpill" style="background:${({low:"#4a90c2",moderate:"#e0a300",high:"#e2681c",critical:"#c0161c"})[d.category]}">${d.category.toUpperCase()}</span></h1>
         <div class="muted">Confidence: ${d.confidence}. ${d.protection_applied?"Protective factors lowered this by one level.":""}</div>
@@ -570,7 +584,29 @@
         ${d.protective_factors.length?`<h3 style="font-size:13px;margin:12px 0 4px">Protective factors you have</h3><div class="muted">${d.protective_factors.join(", ").replace(/_/g," ")}</div>`:""}`;}
       if(d.guardrails.length)h+=`<h3 style="font-size:13px;margin:12px 0 4px">Important safety notes</h3>`+d.guardrails.map(x=>`<div class="reason" style="color:#a15c00">⚠ ${x.en}</div>`).join("");
       if(d.recommendations.length)h+=`<h3 style="font-size:13px;margin:12px 0 4px">Recommended actions</h3>`+d.recommendations.map(r=>`<div class="reason">✓ ${r.en} <span class="muted">(${r.source_org||"src"}, ${r.source_date||""})</span></div>`).join("");
+      if(!(d.emergency&&d.emergency.active))h+=`<div class="mistral-cta"><div class="mistral-row"><label class="blk" for="mistral-language">Plan language<select id="mistral-language" style="display:block;width:100%;margin-top:3px"><option value="en">English</option><option value="uk">Українська</option></select></label><button id="mistral-build" class="btn" onclick="window.__buildActionPlan()">Build my 12-hour action plan with Mistral</button></div><div class="foot">Waves calculates your risk. Mistral turns it into an actionable schedule.</div><div class="foot">Live forecast → Waves risk engine → Mistral Medium 3.5</div><div id="mistral-output" aria-live="polite"></div></div>`;
       h+=`<div class="foot">${d.disclaimer_en} · rule engine v${d.rule_engine_version}</div><button class="btn sec" onclick="window.openProfile()">Edit profile</button>`;sheet.innerHTML=h;}
+    window.__buildActionPlan=async function(){
+      if(!lastRiskResult||lastRiskResult.emergency&&lastRiskResult.emergency.active)return;
+      const button=document.getElementById("mistral-build"),output=document.getElementById("mistral-output"),language=document.getElementById("mistral-language").value;
+      button.disabled=true;button.textContent=language==="uk"?"Створюємо план…":"Building your plan…";output.innerHTML=`<div class="muted" style="margin-top:9px">${language==="uk"?"Mistral організовує ваші наявні рекомендації…":"Mistral is organizing your existing recommendations…"}</div>`;
+      const payload={risk_category:lastRiskResult.category,confidence:lastRiskResult.confidence,top_reasons:lastRiskResult.top_reasons,protective_factors:lastRiskResult.protective_factors,recommendations:lastRiskResult.recommendations,guardrails:lastRiskResult.guardrails,context_label:lastRiskContext,date:S.date,preferred_language:language};
+      try{const response=await fetch(`${API}/api/mistral-action-plan`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)}),body=await response.json();if(!response.ok)throw new Error(body.message||"Mistral unavailable");if(body.risk_category!==lastRiskResult.category)throw new Error("The generated plan did not preserve the Waves risk category.");renderActionPlan(body.plan,language);}
+      catch(error){output.innerHTML=`<div class="mistral-error">${esc(error.message||"Mistral could not build a plan. Your Waves result is still available.")}</div>`;}
+      finally{button.disabled=false;button.textContent="Build my 12-hour action plan with Mistral";}
+    };
+    function renderActionPlan(plan,language){const output=document.getElementById("mistral-output"),labels=language==="uk"?{now:"Зараз",six:"Наступні 6 годин",tonight:"Сьогодні ввечері",avoid:"Уникайте",check:"Повідомлення для перевірки стану",copy:"Копіювати",safety:"Примітка з безпеки"}:{now:"Now",six:"Next 6 hours",tonight:"Tonight",avoid:"Avoid",check:"Check-in message",copy:"Copy",safety:"Safety note"};
+      const section=(title,items)=>`<h3>${title}</h3><ul>${(items||[]).map(item=>`<li>${esc(item)}</li>`).join("")}</ul>`;stopCheckinPoll();lastActionPlan=plan;lastActionPlanLanguage=language;lastCheckInMessage=plan.check_in_message||"";
+      output.innerHTML=`<div class="mistral-plan"><div class="muted"><b>Generated by Mistral Medium 3.5</b></div><h2>${esc(plan.headline)}</h2>${section(labels.now,plan.immediate_actions)}${section(labels.six,plan.next_six_hours)}${section(labels.tonight,plan.tonight)}${section(labels.avoid,plan.avoid)}<h3>${labels.check}</h3><div class="check-in">${esc(lastCheckInMessage)}</div><button class="btn sec copy-btn" onclick="window.__copyCheckIn(this)">${labels.copy}</button><h3>${labels.safety}</h3><div class="muted">${esc(plan.safety_note)}</div><div class="family-checkin"><button id="send-sms-alert" class="btn sms-btn" onclick="window.__sendSmsAlert()">Send SMS alert</button><div id="checkin-card" aria-live="polite"></div></div></div>`;}
+    window.__copyCheckIn=async function(button){try{await navigator.clipboard.writeText(lastCheckInMessage);button.textContent="✓";}catch(error){button.textContent="Copy failed";}};
+    function checkinMessage(id){const risk=lastRiskResult.category,action=String(lastActionPlan?.immediate_actions?.[0]||lastActionPlan?.headline||"").replace(/[.!?…]+$/u,"");const link=`https://waves-nine-gold.vercel.app/checkin/${id}`;
+      if(lastActionPlanLanguage==="uk"){const levels={low:"НИЗЬКИЙ",moderate:"ПОМІРНИЙ",high:"ВИСОКИЙ",critical:"КРИТИЧНИЙ"};return `Waves показує ${levels[risk]} рівень ризику спеки. Будь ласка, перевірте мій стан; перша дія: ${action} — ${link}`;}
+      return `Waves shows a ${risk.toUpperCase()} heat-risk level. Please check in with me; first action: ${action} — ${link}`;}
+    async function pollCheckin(id){try{const response=await fetch(`${API}/api/checkin/${encodeURIComponent(id)}/status`);if(!response.ok)return;const data=await response.json();if(data.status==="pending")return;stopCheckinPoll();const card=document.getElementById("checkin-card");if(!card)return;const stamp=new Intl.DateTimeFormat(lastActionPlanLanguage==="uk"?"uk-UA":"en-US",{hour:"numeric",minute:"2-digit"}).format(new Date());card.className=`checkin-card ${data.status}`;card.textContent=`${data.status==="ok"?"Checked in — I'm OK":"Requested help"} · ${stamp}`;}catch(error){}}
+    window.__openSms=window.__openSms||((url)=>{window.location.href=url;});
+    window.__sendSmsAlert=async function(){const button=document.getElementById("send-sms-alert"),card=document.getElementById("checkin-card");if(!button||!card||!lastRiskResult||!lastActionPlan)return;button.disabled=true;
+      try{const response=await fetch(`${API}/api/checkin/create`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({risk_level:lastRiskResult.category,language:lastActionPlanLanguage})}),data=await response.json();if(!response.ok||!data.id)throw new Error("Could not create check-in");stopCheckinPoll();card.className="checkin-card pending";card.textContent="Waiting for check-in…";checkinPollTimer=setInterval(()=>pollCheckin(data.id),3000);window.__openSms(`sms:+13417669597?body=${encodeURIComponent(checkinMessage(data.id))}`);}
+      catch(error){card.className="checkin-card error";card.textContent="Could not start check-in.";button.disabled=false;}};
     document.getElementById("openProfile").onclick=()=>{profileCtx=null;if(S.region)window.__cityProfile(S.region);else openProfile();};
 
     // =============== boot ===============
@@ -582,7 +618,8 @@
       mapReady=true;
       window.__waves={getState:()=>({...S}),regions:()=>(window.__regions||[]),ready:false,
         mapCount:()=>document.querySelectorAll(".maplibregl-canvas").length,summary:()=>summaryData,
-        footprintDate:()=>footprintData&&footprintData.date,isPlaying:()=>playing,dates:()=>availableDates.slice()};
+        footprintDate:()=>footprintData&&footprintData.date,isPlaying:()=>playing,dates:()=>availableDates.slice(),
+        districtFeatures:()=>districtGeoJSON?districtGeoJSON.features.slice():[]};
       await apply({fit:!!S.city});
       window.__waves.ready=true;
     });

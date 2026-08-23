@@ -13,14 +13,28 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
+import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from app.risk.engine import assess as assess_profile
 from app.risk.models import EnvironmentContext, ProfileRiskRequest
 from app.services.assessment import assess_city_points, assess_location
 from app.services.cities import CITIES, search as city_search
+from app.services.checkin import (
+    CheckinCreateRequest,
+    CheckinRespondRequest,
+    create_session,
+    get_session,
+    respond,
+)
 from app.services.forecast import ForecastError, fetch_forecast
+from app.services.mistral_action_plan import (
+    ActionPlanRequest,
+    MissingMistralAPIKey,
+    build_action_plan,
+)
 from app.services.thresholds_store import get_store
 
 BUILD_VERSION = "0.2.0-day2"
@@ -205,6 +219,40 @@ def profile_risk(req: ProfileRiskRequest,
     return assess_profile(req)
 
 
+@app.post("/api/mistral-action-plan")
+def mistral_action_plan(req: ActionPlanRequest):
+    """Organize an existing Waves result without recalculating its risk."""
+    try:
+        return build_action_plan(req)
+    except MissingMistralAPIKey:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "mistral_unavailable",
+                "message": "Mistral action plans are not configured right now. Your Waves result is unchanged.",
+                "risk_category": req.risk_category,
+            },
+        )
+    except (TimeoutError, httpx.TimeoutException):
+        return JSONResponse(
+            status_code=504,
+            content={
+                "error": "mistral_timeout",
+                "message": "Mistral took too long to respond. Your Waves result is still available.",
+                "risk_category": req.risk_category,
+            },
+        )
+    except Exception:  # noqa: BLE001 - external provider errors degrade gracefully
+        return JSONResponse(
+            status_code=502,
+            content={
+                "error": "mistral_error",
+                "message": "Mistral could not build a plan. Your Waves result is still available.",
+                "risk_category": req.risk_category,
+            },
+        )
+
+
 @app.get("/api/heatwave-summary")
 def heatwave_summary(
     on: str = Query(..., alias="date", description="YYYY-MM-DD"),
@@ -296,13 +344,16 @@ def city_risk_map(
         date.fromisoformat(date_)
     except ValueError:
         raise HTTPException(status_code=422, detail="invalid date; use YYYY-MM-DD")
-    from app.services.city import get_city_risk_map
+    from app.services.city import CityForecastError, get_city_risk_map
     try:
         return get_city_risk_map(city.lower(), date_, layer=layer,
                                  scenario=scenario or None)
     except (KeyError, FileNotFoundError) as e:
         raise HTTPException(status_code=404,
                             detail=f"district detail unavailable for '{city}': {e}")
+    except CityForecastError:
+        raise HTTPException(status_code=502,
+                            detail="district forecast data could not be loaded")
 
 
 @app.get("/api/cities-available")
@@ -336,6 +387,59 @@ def cities(q: str = Query("", description="search query (en/uk)")):
         {"id": c.id, "name_en": c.name_en, "name_uk": c.name_uk,
          "lat": c.lat, "lon": c.lon, "oblast_en": c.oblast_en}
         for c in matches]}
+
+
+@app.post("/api/checkin/create")
+def checkin_create(req: CheckinCreateRequest):
+    """Create a one-hour, process-local demo check-in session."""
+    return {"id": create_session(req)}
+
+
+@app.get("/api/checkin/{session_id}/status")
+def checkin_status(session_id: str):
+    session = get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="check-in session not found or expired")
+    return {"status": session["status"]}
+
+
+@app.post("/api/checkin/{session_id}/respond")
+def checkin_respond(session_id: str, req: CheckinRespondRequest):
+    session = respond(session_id, req.status)
+    if session is None:
+        raise HTTPException(status_code=404, detail="check-in session not found or expired")
+    return {"status": session["status"]}
+
+
+@app.get("/checkin/{session_id}", response_class=HTMLResponse)
+def checkin_page(session_id: str):
+    """Tiny mobile response page; session IDs are unguessable UUID tokens."""
+    session = get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="check-in session not found or expired")
+    uk = session["language"] == "uk"
+    title = "Сімейна перевірка" if uk else "Family check-in"
+    prompt = "Будь ласка, повідомте, як ви." if uk else "Please let them know how you are."
+    risk_label = "Рівень ризику спеки" if uk else "Heat-risk level"
+    ok_label = "Я в порядку ✅" if uk else "I'm OK ✅"
+    help_label = "Потрібна допомога ⚠️" if uk else "Need help ⚠️"
+    thanks = "Відповідь надіслано." if uk else "Response sent."
+    risk_value = session["risk_level"].upper()
+    return HTMLResponse(f"""<!doctype html>
+<html lang="{session['language']}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title} · Waves</title><style>
+body{{margin:0;background:#eef2f5;color:#16202a;font-family:system-ui,sans-serif}}
+main{{max-width:440px;margin:0 auto;padding:28px 18px;text-align:center}}
+.card{{background:#fff;border-radius:16px;padding:24px 18px;box-shadow:0 8px 28px #0002}}
+h1{{font-size:24px;margin:0 0 8px}}p{{line-height:1.45}}.risk{{font-weight:700;text-transform:uppercase}}
+button{{display:block;width:100%;min-height:64px;margin:14px 0 0;border:0;border-radius:12px;color:#fff;font-size:19px;font-weight:700}}
+.ok{{background:#18723b}}.help{{background:#b42318}}#result{{margin-top:18px;font-weight:700}}
+</style></head><body><main><div class="card"><h1>{title}</h1><p>{prompt}</p>
+<p>{risk_label}: <span class="risk">{risk_value}</span></p>
+<button class="ok" onclick="reply('ok')">{ok_label}</button>
+<button class="help" onclick="reply('help')">{help_label}</button><div id="result" role="status"></div>
+</div></main><script>async function reply(status){{const r=await fetch('/api/checkin/{session_id}/respond',{{method:'POST',headers:{{'content-type':'application/json'}},body:JSON.stringify({{status}})}});if(r.ok){{document.getElementById('result').textContent='{thanks}';document.querySelectorAll('button').forEach(b=>b.disabled=true);}}}}</script></body></html>""")
 
 
 # --- Static frontend (Vercel single-function serving) ------------------------

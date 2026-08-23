@@ -44,6 +44,11 @@ RESOLUTION_NOTE = ("District-level estimated heat distribution. Forecast resolut
 # ~0.08 deg (~9 km) ≈ the native model resolution — honest sampling, not sub-cell.
 SAMPLE_SPACING = 0.08
 
+
+class CityForecastError(RuntimeError):
+    """The district forecast could not be produced for the selected date."""
+
+
 # Multi-city ready; add entries as validated district polygons become available.
 CITY_REGISTRY = {
     "kyiv": {
@@ -214,8 +219,9 @@ def _classify(agg: dict) -> tuple[str, list[str]]:
 def _fetch_points(points: list, scenario: Optional[str]) -> dict:
     """One batched multi-coord Open-Meteo fetch for ALL city sample points.
 
-    Returns {(lat,lon): assessment_dict}. Falls back to the offline snapshot for
-    every point if the network fails; uses the synthetic scenario if requested.
+    Returns {(lat,lon): assessment_dict}. A live failure is surfaced to the
+    caller instead of being converted into a zero-cell result from an outdated
+    offline snapshot; uses the synthetic scenario if requested.
     """
     assessments: dict = {}
     if scenario == "heatwave":
@@ -235,20 +241,22 @@ def _fetch_points(points: list, scenario: Optional[str]) -> dict:
                 "longitude": ",".join(str(p[1]) for p in chunk),
                 "hourly": ",".join(HOURLY_VARS), "daily": ",".join(DAILY_VARS),
                 "timezone": "Europe/Kyiv", "forecast_days": 14,
+                # National data can still include the previous Kyiv calendar
+                # day around midnight. Keep district coverage aligned with it.
+                "past_days": 1,
             }
-            r = httpx.get(OM_URL, params=params, timeout=45)
+            r = httpx.get(OM_URL, params=params, timeout=20)
             r.raise_for_status()
             data = r.json()
             batch = data if isinstance(data, list) else [data]
             results = (results or []) + batch
-    except Exception:  # graceful: offline snapshot for every point
-        snap = demo.offline_snapshot()
-        for (lat, lon) in points:
-            fr = _result_from_payload(snap or {}, "open_meteo (OFFLINE SNAPSHOT)", True,
-                                      ["live fetch failed; bundled offline snapshot."],
-                                      "offline snapshot")
-            assessments[(lat, lon)] = assess_location(lat, lon, forecast_result=fr)
-        return assessments
+    except Exception as exc:
+        raise CityForecastError("live district forecast fetch failed") from exc
+
+    if results is None or len(results) != len(points):
+        raise CityForecastError(
+            f"district forecast returned {len(results or [])} of {len(points)} points"
+        )
 
     for (lat, lon), res in zip(points, results):
         payload = {"latitude": lat, "longitude": lon, "timezone": "Europe/Kyiv",
@@ -360,7 +368,10 @@ def get_city_risk_map(city: str, on: str, layer: str = "hazard",
     CITY_CACHE.mkdir(parents=True, exist_ok=True)
     ck = CITY_CACHE / f"{city}_{on}_{layer}_{scenario or 'live'}.json"
     if ck.exists() and (time.time() - ck.stat().st_mtime) < CITY_CACHE_TTL:
-        return json.loads(ck.read_text())
+        cached = json.loads(ck.read_text())
+        # Older versions cached transient failures as a successful empty map.
+        if cached.get("total_cells_sampled", 0) > 0:
+            return cached
 
     data = _load_districts(city)
     features = data["fc"]["features"]
@@ -369,6 +380,9 @@ def get_city_risk_map(city: str, on: str, layer: str = "hazard",
     # One batched fetch for ALL unique sample points across the whole city.
     all_points = sorted({pt for pts in by_region.values() for pt in pts})
     assessments = _fetch_points(all_points, scenario)
+    if not any(any(day.get("date") == on for day in item.get("days", []))
+               for item in assessments.values()):
+        raise CityForecastError("selected date is outside the district forecast window")
 
     regions_out = []
     total_cells = 0
@@ -387,6 +401,9 @@ def get_city_risk_map(city: str, on: str, layer: str = "hazard",
                     "from_centroid": centroid_flag[rid],
                     "centroid": [round(clat, 4), round(clon, 4)]})
         regions_out.append(agg)
+
+    if total_cells == 0:
+        raise CityForecastError("district forecast contained no cells for the selected date")
 
     store = get_store()
     binfo = store.baseline_info() if store.is_available() else {}

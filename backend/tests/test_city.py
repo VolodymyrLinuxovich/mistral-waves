@@ -2,10 +2,11 @@
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.services.city import _classify, _point_in_geom  # noqa: E402
+from app.services.city import CityForecastError, _classify, _fetch_points, _point_in_geom  # noqa: E402
 
 
 SQUARE = {"type": "Polygon", "coordinates": [[[0, 0], [0, 10], [10, 10], [10, 0], [0, 0]]]}
@@ -59,6 +60,13 @@ class TestClassify(unittest.TestCase):
 
     def test_low_default(self):
         self.assertEqual(_classify(self._agg())[0], "low")
+
+
+class TestForecastFailures(unittest.TestCase):
+    @patch("app.services.city.httpx.get", side_effect=RuntimeError("network down"))
+    def test_live_batch_failure_is_not_converted_to_empty_snapshot(self, _get):
+        with self.assertRaises(CityForecastError):
+            _fetch_points([(50.4501, 30.5234)], scenario=None)
 
 
 if __name__ == "__main__":

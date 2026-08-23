@@ -1,68 +1,109 @@
-# Waves — Ukraine heat-health risk platform (MVP)
+# Waves — heatwave hazard & personal risk for Ukraine
 
-A scientifically defensible MVP for heatwave hazard and heat-health risk across
-Ukraine, with a detailed Kyiv view. **Not a medical device.** It separates four
-layers that are never conflated: **hazard · exposure · vulnerability · health
-outcome** (see `docs/methodology.md`).
+[**Open the live demo →**](https://waves-nine-gold.vercel.app)
 
-Sprint: 2026-07-23 → 2026-08-06. This repo is being built in vertical slices;
-see `docs/backlog.md` for day-by-day status.
+Waves turns Ukraine-wide heatwave forecasts into an explainable, personal action flow: explore the national hazard map, drill into Kyiv districts, calculate a deterministic risk level for a fictional or real-world profile, and ask Mistral to organize the approved guidance into a practical bilingual 12-hour plan. It is designed for clarity under pressure while keeping medical safety rules—and the final risk category—under Waves' control.
 
-## What works today
-**Scientific core** (dependency-free): calendar-day percentile climatology
-(TX90/95/99, TN90, ±15-day window), heat-stress indices (Heat Index, Humidex,
-EHF, tropical night) with citations/units/validity flags, and run-length
-heatwave detection with all spec definitions (incl. the team's 2-day TX90 as a
-labelled sensitivity mode).
+> **Not a medical device.** Waves provides environmental heat-risk estimates and safety guidance; it does not diagnose or replace a healthcare professional.
 
-**Real data pipelines + API + map:**
-- ERA5-Land download (CDS `derived-era5-land-daily-statistics`): robust,
-  resumable, per-year, manifest + NetCDF validation, bounded retries/backoff.
-- Real thresholds served via `/api/thresholds` — currently **provisional
-  (2020 only)** while the full 1991–2020 baseline downloads. Baseline state is
-  exposed everywhere as `baseline_status` / `baseline_years` / `expected_baseline`.
-- Open-Meteo forecast adapter (cached, graceful fallback) + forecast↔threshold
-  comparison and heatwave detection in `/api/location-risk`, `/api/risk-map`.
-- MapLibre SPA (`frontend/index.html`): Ukraine map, city hazard markers, date
-  slider, layer selector, city search, click-to-explain, Kyiv detail, and a
-  prominent **provisional-data banner**.
+## Built today at the Mistral Vibe Hackathon
 
-> The Kyiv-vs-Lviv threshold difference is a **pipeline sanity check** showing
-> location-specific thresholds differ spatially — **not** a climatology. Final
-> thresholds require the complete 1991–2020 baseline. The
-> `ukraine_heat_thresholds_1991_2020.nc` file is created only once all 30 years
-> download and validate.
+- **Mistral Medium structured-output bilingual action plans:** `mistral-medium-latest` returns a validated English or Ukrainian schedule for now, the next six hours, tonight, what to avoid, and a check-in message.
+- **Privacy guardrails:** only the computed risk subset is sent to Mistral, never names, symptoms, or the complete raw health profile. The deterministic Waves risk category is immutable, and the emergency path never calls the LLM.
+- **SMS family check-in loop:** create a one-hour, in-memory check-in session, open a prefilled two-sentence SMS, and see the page update when the recipient replies “I'm OK” or “Need help.” No names or health data are stored in the session.
+- **MCP server for Mistral Vibe agents:** a minimal stdio server exposes privacy-safe `get_heat_risk` and `get_action_plan` tools backed by the deployed Waves API—without duplicating the risk engine.
+- **District-level drill-down:** click Kyiv to preserve the selected forecast date, color every district with the national level 0–4 choropleth, and rank districts from the loaded forecast cells.
 
-### Run the tests (backend core needs no network)
+> **Pre-existing base:** The climatology and national map engine predate the event; the Mistral planning, privacy boundary, SMS check-in, MCP integration, and repaired Kyiv district experience were built for the hackathon.
+
+## Demo flow
+
+### 1. Create a vulnerable fictional profile
+
+![Synthetic severe-heatwave profile with age, health, exposure, and protection controls](output/mistral-demo/01-fictional-profile.png)
+
+### 2. Waves calculates an immutable deterministic risk
+
+![Critical Waves risk result with reasons, medical guardrails, and deterministic recommendations](output/mistral-demo/02-waves-risk.png)
+
+### 3. Mistral builds the 12-hour action plan
+
+![Mistral Medium structured action plan generated from the privacy-safe Waves result subset](output/mistral-demo/03-mistral-plan.png)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Forecast[Open-Meteo forecast] --> Hazard[Waves heatwave engine]
+    Climate[ERA5-Land 1991–2020 climatology] --> Hazard
+    Hazard --> Map[MapLibre national + district map]
+    Map --> Profile[Minimal profile inputs]
+    Profile --> Risk[Deterministic Waves risk engine]
+    Risk --> Emergency{Emergency active?}
+    Emergency -- Yes --> Urgent[Existing emergency screen<br/>No LLM call]
+    Emergency -- No --> Safe[Computed risk subset only]
+    Safe --> Mistral[Mistral Medium<br/>structured output]
+    Mistral --> Plan[Bilingual 12-hour plan]
+    Plan --> CheckIn[SMS family check-in]
+    Agent[Mistral Vibe agent] --> MCP[Waves MCP server]
+    MCP --> API[Deployed FastAPI]
+    API --> Risk
+```
+
+The deterministic engine owns the risk category and safety rules. Mistral can organize only the supplied reasons, recommendations, protective factors, and guardrails; its structured response cannot change the Waves risk level.
+
+## Run locally
+
+Requirements: Python 3.12+, Node.js, and a server-side Mistral API key.
+
 ```bash
-.venv/bin/python -m unittest discover -s backend/tests -v   # 40 tests pass
+git clone https://github.com/VolodymyrLinuxovich/mistral-waves.git
+cd mistral-waves
+
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements-api.txt
+npm install
+
+cp .env.example .env
+# Add MISTRAL_API_KEY to .env; never expose it in frontend code or commit it.
+
+set -a
+source .env
+set +a
+./scripts/run_local.sh
 ```
 
-### Run the app locally
+Open [http://127.0.0.1:8080/frontend/index.html](http://127.0.0.1:8080/frontend/index.html). The API docs are at [http://127.0.0.1:8010/docs](http://127.0.0.1:8010/docs).
+
+### Run the tests
+
 ```bash
-PYTHONPATH=backend .venv/bin/python -m uvicorn app.main:app --port 8010   # API
-python -m http.server 8080                                                # static frontend
-# open http://127.0.0.1:8080/frontend/index.html
+PYTHONPATH=backend .venv/bin/python -m unittest discover -s backend/tests -v
+.venv/bin/python -m pip install -r mcp/requirements-dev.txt
+.venv/bin/python -m pytest mcp/tests -q
+npx playwright install chromium
+npx playwright test
 ```
 
-## Layout
-```
-backend/app/services/heat/   # thresholds.py, indices.py, detection.py (stdlib-only core)
-backend/tests/               # unittest suite
-config/                      # heatwave_definitions, risk_rules, recommendation_rules, data_sources
-docs/                        # methodology, medical_safety, limitations, data_provenance, ADR, backlog
-pipelines/                   # era5/, forecast/ (Day 2-4)
-data/                        # sample/, metadata/
+### Run the MCP server
+
+```bash
+.venv/bin/python -m pip install -r mcp/requirements.txt
+.venv/bin/python mcp/waves_mcp.py
 ```
 
-## Documentation
-- `docs/methodology.md` — science + definitions
-- `docs/medical_safety.md` — guardrails (fluid restriction, medication, emergencies)
-- `docs/limitations.md` — what this does and does not claim
-- `docs/data_provenance.md` — sources + adapter contract
-- `docs/adr-0001-mvp-stack.md` — stack decisions
+See [mcp/README.md](mcp/README.md) for the Mistral Vibe CLI `mcp_servers` configuration block.
 
-## Principles
-No fabricated data or API responses. Missing values stay missing (never zeroed).
-Association is not causation. No fake personal probabilities. Full disclosure of
-timestamps, provenance, uncertainty, missingness, and limitations.
+## Tech stack
+
+- **Backend:** Python, FastAPI, Pydantic, official Mistral Python SDK
+- **Risk and climate:** deterministic rules, NumPy, ERA5-Land 1991–2020 climatology, Open-Meteo forecast adapter
+- **Frontend:** dependency-light HTML/CSS/JavaScript SPA with MapLibre GL
+- **AI:** Mistral Medium custom structured output in English and Ukrainian
+- **Agent integration:** official Python MCP SDK over stdio, HTTPX transport to the production API
+- **Testing:** `unittest`, pytest, HTTPX mocks, Playwright
+- **Deployment:** Vercel-hosted static frontend and FastAPI functions
+
+## Safety and methodology
+
+Waves separates **hazard**, **exposure**, **vulnerability**, and **health outcome**. Missing data stays missing, uncertainty remains visible, and special guardrails prevent universal hydration advice when fluid restriction applies. See [methodology](docs/methodology.md), [medical safety](docs/medical_safety.md), [limitations](docs/limitations.md), and [data provenance](docs/data_provenance.md).

@@ -162,6 +162,59 @@ test("Kyiv districts: affected fractions + severity (synthetic, deterministic)",
   await expect(page.locator("#sheet")).toContainText("Environmental context");
 });
 
+test("Kyiv drill-down preserves date and colors mocked district forecast", async ({ page }) => {
+  const districts = JSON.parse(require("fs").readFileSync(
+    path.join(__dirname, "../../data/boundaries/kyiv_districts.geojson"), "utf8"
+  )).features;
+  let requestedDate;
+  await page.route("**/api/city-risk-map**", async (route) => {
+    const url = new URL(route.request().url());
+    requestedDate = url.searchParams.get("date");
+    const regions = districts.map((feature, index) => {
+      const severity = index % 5;
+      return {
+        id: feature.properties.id,
+        name: feature.properties.name,
+        name_en: feature.properties.name_en,
+        severity_level: severity,
+        severity_label: ["No heatwave", "Heatwave watch", "Confirmed heatwave", "Severe heatwave", "Extreme heatwave"][severity],
+        severity_color: ["#6b8fa8", "#f4c430", "#e8862e", "#a9481c", "#c0161c"][severity],
+        max_severity_level: severity,
+        pct_level2plus: severity >= 2 ? 100 : 0,
+        tmax_minus_tx95: severity,
+        n_cells: 2,
+      };
+    });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        city: "kyiv", date: requestedDate, n_regions: regions.length,
+        total_cells_sampled: regions.length * 2,
+        resolution_note: "District-level estimated heat distribution.",
+        regions,
+      }),
+    });
+  });
+
+  await boot(page, SYN);
+  await scrubTimeline(page, 2);
+  const selectedDate = (await state(page)).date;
+  await page.locator('[aria-label^="Kyiv,"]').first().click();
+  await page.waitForFunction(() => window.__waves.getState().city === "kyiv");
+  await page.waitForFunction(() => window.__waves.districtFeatures().length >= 10);
+
+  expect(requestedDate).toBe(selectedDate);
+  expect((await state(page)).date).toBe(selectedDate);
+  const districtColors = await page.evaluate(() => window.__waves.districtFeatures()
+    .map((feature) => feature.properties.severity_color));
+  expect(districtColors).toHaveLength(districts.length);
+  expect(districtColors.every((color) => /^#[0-9a-f]{6}$/i.test(color))).toBe(true);
+  expect(new Set(districtColors).size).toBe(5);
+  await expect(page.locator("#ranklist .row")).toHaveCount(districts.length);
+  await expect(page.locator("#rank-extra")).toContainText(`District ranking (${districts.length})`);
+});
+
 test("mode selector switches live <-> historical, URL persists", async ({ page }) => {
   await boot(page, HIST);
   await page.click('#modes button[data-m="live"]');
@@ -278,4 +331,134 @@ test("API failure degrades without crashing", async ({ page }) => {
   await boot(page, HIST);
   await expect(page.locator("#src")).toContainText(/unreachable|Backend/i);
   expect(await mapCount(page)).toBe(1);
+});
+
+test("emergency profile never invokes Mistral", async ({ page }) => {
+  let mistralCalls = 0;
+  await page.route("**/api/mistral-action-plan", async (route) => {
+    mistralCalls += 1;
+    await route.fulfill({ status: 500, body: "should not be called" });
+  });
+  await page.route("**/api/profile-risk**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      category: "critical", confidence: "emergency override", top_reasons: [],
+      protective_factors: [], protection_applied: false, recommendations: [], guardrails: [],
+      emergency: { active: true, symptoms: ["confusion"], message_en: "Call emergency services.", call: "103" },
+      disclaimer_en: "Not a diagnosis.", rule_engine_version: "test",
+    }),
+  }));
+  await boot(page, SYN);
+  await page.click("#openProfile");
+  await page.check("#s_conf");
+  await page.click('#sheet button.btn:has-text("See my explained risk")');
+  await expect(page.locator("#sheet .emerg")).toContainText("EMERGENCY — call 103");
+  await expect(page.locator("#mistral-build")).toHaveCount(0);
+  expect(mistralCalls).toBe(0);
+});
+
+test("Mistral action plan uses only the calculated result subset", async ({ page }) => {
+  let requestBody;
+  await page.route("**/api/mistral-action-plan", async (route) => {
+    requestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        risk_category: requestBody.risk_category,
+        generated_by: "Mistral Medium 3.5",
+        plan: {
+          headline: "A practical plan through tonight",
+          immediate_actions: ["Move activity to a cooler time."],
+          next_six_hours: ["Use your available cooler place."],
+          tonight: ["Stay in the coolest available room."],
+          avoid: ["Avoid direct sun."],
+          check_in_message: "Please check in with me tonight.",
+          safety_note: "Follow the existing Waves safety notes.",
+        },
+      }),
+    });
+  });
+  await page.route("**/api/profile-risk**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      category: "high", confidence: "moderate environmental signal",
+      top_reasons: [{ factor: "heatwave_event", detail: "Inside a severe heatwave." }],
+      protective_factors: ["social_support"], protection_applied: false,
+      recommendations: [{ id: "REC-GENERAL", en: "Move activity to a cooler time.", uk: "Перенесіть активність.", source_org: "WHO", source_date: "2024", review_date: null }],
+      guardrails: [], emergency: null, disclaimer_en: "Not a diagnosis.", rule_engine_version: "test",
+    }),
+  }));
+  await boot(page, SYN);
+  await page.click("#openProfile");
+  await page.click('#sheet button.btn:has-text("See my explained risk")');
+  await page.click("#mistral-build");
+  await expect(page.locator("#mistral-output")).toContainText("Generated by Mistral Medium 3.5");
+  await expect(page.locator("#mistral-output")).toContainText("Next 6 hours");
+  expect(Object.keys(requestBody).sort()).toEqual([
+    "confidence", "context_label", "date", "guardrails", "preferred_language",
+    "protective_factors", "recommendations", "risk_category", "top_reasons",
+  ]);
+  expect(requestBody).not.toHaveProperty("vulnerability");
+  expect(requestBody).not.toHaveProperty("symptoms");
+});
+
+test("family SMS check-in polls until the recipient responds", async ({ page }) => {
+  let sessionStatus = "pending";
+  let createBody;
+  await page.addInitScript(() => {
+    window.__openSms = (url) => { window.__openedSms = url; };
+  });
+  await page.route("**/api/profile-risk**", (route) => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({
+      category: "high", confidence: "high", protection_applied: false,
+      top_reasons: [{ factor: "heat", detail: "Severe heat." }],
+      protective_factors: [], recommendations: [], guardrails: [], emergency: null,
+      disclaimer_en: "Not a diagnosis.", rule_engine_version: "test",
+    }),
+  }));
+  await page.route("**/api/mistral-action-plan", (route) => route.fulfill({
+    status: 200, contentType: "application/json",
+    body: JSON.stringify({
+      risk_category: "high", generated_by: "Mistral Medium 3.5",
+      plan: {
+        headline: "Stay cool through tonight",
+        immediate_actions: ["Move to a cooler place."], next_six_hours: [],
+        tonight: [], avoid: [], check_in_message: "Please check in.",
+        safety_note: "Follow Waves guidance.",
+      },
+    }),
+  }));
+  await page.route("**/api/checkin/create", async (route) => {
+    createBody = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: "application/json", body: '{"id":"demo-session"}' });
+  });
+  await page.route("**/api/checkin/demo-session/status", (route) => route.fulfill({
+    status: 200, contentType: "application/json", body: JSON.stringify({ status: sessionStatus }),
+  }));
+  await page.route("**/api/checkin/demo-session/respond", async (route) => {
+    sessionStatus = route.request().postDataJSON().status;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: sessionStatus }) });
+  });
+
+  await boot(page, SYN);
+  await page.click("#openProfile");
+  await page.click('#sheet button.btn:has-text("See my explained risk")');
+  await page.click("#mistral-build");
+  await page.click("#send-sms-alert");
+  await expect(page.locator("#checkin-card")).toContainText("Waiting for check-in…");
+  expect(createBody).toEqual({ risk_level: "high", language: "en" });
+  const smsUrl = await page.evaluate(() => window.__openedSms);
+  expect(decodeURIComponent(smsUrl)).toContain("sms:+13417669597?body=Waves shows a HIGH heat-risk level.");
+  expect(decodeURIComponent(smsUrl)).toContain("Move to a cooler place — https://waves-nine-gold.vercel.app/checkin/demo-session");
+
+  await page.evaluate(() => fetch("/api/checkin/demo-session/respond", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ status: "ok" }),
+  }));
+  await expect(page.locator("#checkin-card")).toHaveClass(/ok/, { timeout: 5000 });
+  await expect(page.locator("#checkin-card")).toContainText("Checked in — I'm OK");
 });

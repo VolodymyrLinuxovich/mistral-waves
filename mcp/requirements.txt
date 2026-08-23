@@ -1,0 +1,6 @@
+# Official Model Context Protocol Python SDK (stdio server runtime).
+mcp[cli]>=2.0,<3
+httpx>=0.28,<1
+
+# Required when importing the canonical action-plan schemas from the backend.
+mistralai==2.9.*

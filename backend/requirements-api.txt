@@ -6,6 +6,7 @@ pydantic==2.*
 pyyaml==6.*
 httpx==0.28.*
 numpy==2.*
+mistralai==2.9.*
 pandas==2.*
 xarray==2024.*
 netCDF4==1.7.*
