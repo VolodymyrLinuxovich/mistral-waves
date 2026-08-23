@@ -1,7 +1,9 @@
 """Tests for the ephemeral family check-in loop."""
 import os
 import sys
+import time
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -45,6 +47,20 @@ class TestCheckin(unittest.TestCase):
         self.assertIn("I'm OK ✅", response.text)
         self.assertIn("Need help ⚠️", response.text)
 
+    def test_mobile_page_survives_a_serverless_cold_start(self):
+        session_id = self._create(risk_level="critical", language="uk")
+        checkin.clear_sessions()
+        response = self.client.get(f"/checkin/{session_id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("CRITICAL", response.text)
+        self.assertIn("Я в порядку ✅", response.text)
+        self.assertEqual(
+            self.client.post(
+                f"/api/checkin/{session_id}/respond", json={"status": "ok"}
+            ).json(),
+            {"status": "ok"},
+        )
+
     def test_response_flips_status_and_sessions_expire_after_one_hour(self):
         session_id = self._create()
         response = self.client.post(
@@ -55,8 +71,9 @@ class TestCheckin(unittest.TestCase):
             self.client.get(f"/api/checkin/{session_id}/status").json(),
             {"status": "help"},
         )
-        with checkin._lock:
-            checkin._sessions[session_id]["created_at"] -= checkin.CHECKIN_TTL_SECONDS
-        self.assertEqual(
-            self.client.get(f"/api/checkin/{session_id}/status").status_code, 404
-        )
+        future = time.time() + checkin.CHECKIN_TTL_SECONDS + 1
+        with patch("app.services.checkin.time.time", return_value=future):
+            self.assertEqual(
+                self.client.get(f"/api/checkin/{session_id}/status").status_code,
+                404,
+            )

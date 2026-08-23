@@ -391,7 +391,7 @@ def cities(q: str = Query("", description="search query (en/uk)")):
 
 @app.post("/api/checkin/create")
 def checkin_create(req: CheckinCreateRequest):
-    """Create a one-hour, process-local demo check-in session."""
+    """Create a one-hour, privacy-minimal demo check-in session."""
     return {"id": create_session(req)}
 
 
@@ -413,7 +413,7 @@ def checkin_respond(session_id: str, req: CheckinRespondRequest):
 
 @app.get("/checkin/{session_id}", response_class=HTMLResponse)
 def checkin_page(session_id: str):
-    """Tiny mobile response page; session IDs are unguessable UUID tokens."""
+    """Tiny mobile response page; IDs survive serverless cold starts."""
     session = get_session(session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="check-in session not found or expired")

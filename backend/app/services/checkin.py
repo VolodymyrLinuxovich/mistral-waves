@@ -46,7 +46,12 @@ def _purge_expired(now: float) -> None:
 
 def create_session(request: CheckinCreateRequest) -> str:
     now = time.time()
-    session_id = uuid.uuid4().hex
+    # Carry only the already-approved risk/language plus issue time in the
+    # opaque ID. Vercel may serve the SMS page from a different warm instance;
+    # this lets that instance reconstruct the privacy-minimal pending session.
+    session_id = (
+        f"v1.{int(now)}.{request.risk_level}.{request.language}.{uuid.uuid4().hex}"
+    )
     with _lock:
         _purge_expired(now)
         _sessions[session_id] = {
@@ -59,11 +64,37 @@ def create_session(request: CheckinCreateRequest) -> str:
     return session_id
 
 
+def _session_from_id(session_id: str, now: float) -> dict | None:
+    try:
+        version, issued_raw, risk_level, language, nonce = session_id.split(".")
+        issued_at = int(issued_raw)
+        uuid.UUID(hex=nonce)
+    except (ValueError, TypeError):
+        return None
+    if version != "v1" or risk_level not in {"low", "moderate", "high", "critical"}:
+        return None
+    if language not in {"en", "uk"} or issued_at > now + 60:
+        return None
+    if now - issued_at >= CHECKIN_TTL_SECONDS:
+        return None
+    return {
+        "risk_level": risk_level,
+        "language": language,
+        "status": "pending",
+        "created_at": float(issued_at),
+        "updated_at": None,
+    }
+
+
 def get_session(session_id: str) -> dict | None:
     now = time.time()
     with _lock:
         _purge_expired(now)
         session = _sessions.get(session_id)
+        if session is None:
+            session = _session_from_id(session_id, now)
+            if session is not None:
+                _sessions[session_id] = session
         return dict(session) if session else None
 
 
@@ -73,7 +104,10 @@ def respond(session_id: str, status: Literal["ok", "help"]) -> dict | None:
         _purge_expired(now)
         session = _sessions.get(session_id)
         if session is None:
-            return None
+            session = _session_from_id(session_id, now)
+            if session is None:
+                return None
+            _sessions[session_id] = session
         session["status"] = status
         session["updated_at"] = now
         return dict(session)
