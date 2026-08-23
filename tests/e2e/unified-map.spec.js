@@ -301,7 +301,7 @@ test("desktop 1200x700: constrained shell, independent sidebar, complete timelin
 });
 
 test("mobile: bottom sheet, timeline, legend, and touch controls remain reachable", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 393, height: 852 });
   const errors = await boot(page, HIST);
   await page.waitForTimeout(1000);
   await expect(page.locator("#timeline")).toBeVisible();
@@ -311,10 +311,20 @@ test("mobile: bottom sheet, timeline, legend, and touch controls remain reachabl
     const r = button.getBoundingClientRect(); return [r.width, r.height];
   }));
   sizes.forEach(([width, height]) => { expect(width).toBeGreaterThanOrEqual(44); expect(height).toBeGreaterThanOrEqual(44); });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(393);
   await page.locator("#panel").evaluate((panel) => { panel.scrollTop = panel.scrollHeight; });
   await expect(page.locator("#src")).toBeInViewport();
   await expect(page.locator("#openProfile")).toBeInViewport();
+  await page.click("#openProfile");
+  await expect(page.locator("#sheet")).toBeVisible();
+  const sheet = await page.locator("#sheet").evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, bottom: rect.bottom, viewport: innerWidth };
+  });
+  expect(sheet.left).toBeGreaterThanOrEqual(0);
+  expect(sheet.right).toBeLessThanOrEqual(sheet.viewport);
+  expect(sheet.bottom).toBeLessThanOrEqual(852);
+  await page.click("#sheet .close");
   await page.locator("#panel").evaluate((panel) => { panel.scrollTop = 0; });
   await page.screenshot({ path: path.join(SHOTS, "polished-mobile-390x844.png") });
   expect(errors).toEqual([]);
